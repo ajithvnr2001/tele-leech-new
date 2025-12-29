@@ -193,8 +193,8 @@ async def Do_Leech(source, is_dir, is_ytdl, is_zip, is_unzip, is_dualzip):
             
             if is_zip:
                 # Individual file zipping for sequential processing
-                # Pass remove=True to delete original files after upload
-                await IndividualZipLeech(Paths.down_path, True)
+                # Pass remove=False to KEEP original Drive files, only delete Colab temp files
+                await IndividualZipLeech(Paths.down_path, False)
             elif is_unzip:
                 await Unzip_Handler(Paths.down_path, False)
                 await Leech(Paths.temp_unzip_path, True)
