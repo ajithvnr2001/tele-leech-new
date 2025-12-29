@@ -160,6 +160,92 @@ async def Zip_Handler(down_path: str, is_split: bool, remove: bool):
         shutil.rmtree(down_path)
 
 
+async def IndividualZipLeech(folder_path: str, remove: bool):
+    """
+    Process each file in folder_path individually:
+    1. Zip the file
+    2. Split if > 1.8GB
+    3. Upload split parts
+    4. Delete zip and parts before moving to next file
+    """
+    global BOT, BotTimes, Messages, Paths, Transfer
+
+    files = [str(p) for p in pathlib.Path(folder_path).glob("**/*") if p.is_file()]
+    folder_name = ospath.basename(folder_path)
+    total_files = len(files)
+
+    for idx, f in enumerate(natsorted(files), 1):
+        file_path = f
+        file_name = ospath.basename(file_path)
+
+        logging.info(f"Processing file {idx}/{total_files}: {file_name}")
+
+        # Update status
+        Messages.status_head = f"<b>📦 PROCESSING » </b>\n\n<code>{file_name}</code>\n<i>File {idx} of {total_files}</i>\n"
+        try:
+            MSG.status_msg = await MSG.status_msg.edit_text(
+                text=Messages.task_msg + Messages.status_head + "\n⏳ __Starting...__" + sysINFO(),
+                reply_markup=keyboard(),
+            )
+        except Exception as e:
+            logging.error(f"Error updating status: {e}")
+
+        # Create temp directory for zipping
+        if not ospath.exists(Paths.temp_zpath):
+            makedirs(Paths.temp_zpath)
+
+        # Zip this individual file
+        Messages.download_name = file_name
+        BotTimes.current_time = time()
+        await archive(file_path, True, False)  # is_split=True, remove=False (we handle removal later)
+
+        await sleep(1)
+
+        # Get all created zip parts
+        zip_files = natsorted(os.listdir(Paths.temp_zpath))
+        Transfer.total_down_size = getSize(Paths.temp_zpath)
+
+        # Upload each part
+        for part_idx, zip_part in enumerate(zip_files, 1):
+            part_path = ospath.join(Paths.temp_zpath, zip_part)
+            part_name = zip_part
+
+            BotTimes.current_time = time()
+            Messages.status_head = f"<b>📤 UPLOADING » {part_idx} OF {len(zip_files)}</b>\n\n<code>{part_name}</code>\n"
+            try:
+                MSG.status_msg = await MSG.status_msg.edit_text(
+                    text=Messages.task_msg + Messages.status_head + "\n⏳ __Starting...__" + sysINFO(),
+                    reply_markup=keyboard(),
+                )
+            except Exception as e:
+                logging.error(f"Error updating status: {e}")
+
+            await upload_file(part_path, part_name)
+            Transfer.up_bytes.append(os.stat(part_path).st_size)
+            Transfer.sent_file_names.append(part_name)
+
+            # Delete part after upload
+            os.remove(part_path)
+            logging.info(f"Deleted uploaded part: {part_name}")
+
+        # Clear temp zip directory
+        if ospath.exists(Paths.temp_zpath):
+            shutil.rmtree(Paths.temp_zpath)
+
+        # Remove original file if requested
+        if remove and ospath.exists(file_path):
+            os.remove(file_path)
+            logging.info(f"Deleted original file: {file_name}")
+
+    # Cleanup folder if empty and remove requested
+    if remove and ospath.exists(folder_path):
+        try:
+            shutil.rmtree(folder_path)
+        except Exception as e:
+            logging.error(f"Could not remove folder: {e}")
+
+
+
 async def Unzip_Handler(down_path: str, remove: bool):
     global MSG, Messages
 

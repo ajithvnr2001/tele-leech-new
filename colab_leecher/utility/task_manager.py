@@ -26,6 +26,7 @@ from colab_leecher.utility.handler import (
     Leech,
     Unzip_Handler,
     Zip_Handler,
+    IndividualZipLeech,
     SendLogs,
     cancelTask,
 )
@@ -187,8 +188,8 @@ async def Do_Leech(source, is_dir, is_ytdl, is_zip, is_unzip, is_dualzip):
                 return
             Paths.down_path = s
             if is_zip:
-                await Zip_Handler(Paths.down_path, True, False)
-                await Leech(Paths.temp_zpath, True)
+                # Individual file zipping for sequential processing
+                await IndividualZipLeech(Paths.down_path, False)
             elif is_unzip:
                 await Unzip_Handler(Paths.down_path, False)
                 await Leech(Paths.temp_unzip_path, True)

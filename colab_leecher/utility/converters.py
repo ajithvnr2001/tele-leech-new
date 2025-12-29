@@ -112,7 +112,7 @@ async def videoConverter(file: str):
 
 async def sizeChecker(file_path, remove: bool):
     global Paths
-    max_size = 2097152000  # 2 GB
+    max_size = 1887436800  # 1.8 GB (1800 * 1024 * 1024)
     file_size = os.stat(file_path).st_size
 
     if file_size > max_size:
@@ -132,7 +132,7 @@ async def sizeChecker(file_path, remove: bool):
             f_type = fileType(file_path)
             if f_type == "video" and BOT.Options.is_split:
                 # TODO: Store the size in a constant variable
-                await splitVideo(file_path, 2000, remove)
+                await splitVideo(file_path, 1800, remove)
             else:
                 await archive(file_path, True, remove)
             await sleep(2)
@@ -146,7 +146,7 @@ async def archive(path, is_split, remove: bool):
     dir_p, p_name = ospath.split(path)
     r = "-r" if ospath.isdir(path) else ""
     if is_split:
-        split = "-s 2000m" if len(BOT.Options.zip_pswd) == 0 else "-v2000m"
+        split = "-s 1800m" if len(BOT.Options.zip_pswd) == 0 else "-v1800m"
     else:
         split = ""
     if len(BOT.Options.custom_name) != 0:
@@ -156,13 +156,16 @@ async def archive(path, is_split, remove: bool):
     else:
         name = Messages.download_name
     Messages.status_head = f"<b>🔐 ZIPPING » </b>\n\n<code>{name}</code>\n"
-    Messages.download_name = f"{name}.zip"
+    # Get parent folder name for custom naming format
+    parent_name = ospath.basename(dir_p)
+    output_name = f"{parent_name}.{name}"
+    Messages.download_name = f"{output_name}.zip"
     BotTimes.task_start = datetime.now()
 
     if len(BOT.Options.zip_pswd) == 0:
-        cmd = f'cd "{dir_p}" && zip {r} {split} -0 "{Paths.temp_zpath}/{name}.zip" "{p_name}"'
+        cmd = f'cd "{dir_p}" && zip {r} {split} -0 "{Paths.temp_zpath}/{output_name}.zip" "{p_name}"'
     else:
-        cmd = f'7z a -mx=0 -tzip -p{BOT.Options.zip_pswd} {split} "{Paths.temp_zpath}/{name}.zip" {path}'
+        cmd = f'7z a -mx=0 -tzip -p{BOT.Options.zip_pswd} {split} "{Paths.temp_zpath}/{output_name}.zip" {path}'
     proc = subprocess.Popen(cmd, shell=True)
     total_size = getSize(path)
     total_in_unit = sizeUnit(total_size)
@@ -270,9 +273,10 @@ async def splitArchive(file_path, max_size):
         i = 1
         bytes_written = 0
         while chunk:
-            # Generate filename for this chunk
-            ext = str(i).zfill(3)
-            output_filename = "{}.{}".format(new_path, ext)
+            # Generate filename for this chunk using parent folder name and 2-digit numbering
+            parent_name = ospath.basename(ospath.dirname(file_path))
+            ext = str(i).zfill(2)
+            output_filename = f"{Paths.temp_zpath}/{parent_name}.{filename}.{ext}"
 
             # Write chunk to file
             with open(output_filename, "wb") as out:
@@ -321,7 +325,11 @@ async def splitVideo(file_path, max_size, remove: bool):
     # Calculate duration in seconds
     duration = int(target_size_bits / bitrate)
 
-    cmd = f'ffmpeg -i {file_path} -c copy -f segment -segment_time {duration} -reset_timestamps 1 "{Paths.temp_zpath}/{just_name}.part%03d{extension}"'
+    # Get parent folder name for custom naming format
+    parent_name = ospath.basename(ospath.dirname(file_path))
+    output_basename = f"{parent_name}.{just_name}"
+
+    cmd = f'ffmpeg -i "{file_path}" -c copy -f segment -segment_time {duration} -reset_timestamps 1 "{Paths.temp_zpath}/{output_basename}.%02d{extension}"'
 
     Messages.status_head = f"<b>✂️ SPLITTING » </b>\n\n<code>{filename}</code>\n"
     BotTimes.task_start = datetime.now()
