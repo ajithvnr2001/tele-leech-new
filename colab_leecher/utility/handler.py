@@ -350,7 +350,7 @@ async def SendLogs(is_leech: bool):
                     [
                         InlineKeyboardButton(
                             "Git Repo 🪲",
-                            url="https://github.com/XronTrix10/Telegram-Leecher",
+                            url="https://github.com/ajithvnr2001/tele-leech-new",
                         ),
                     ],
                     [

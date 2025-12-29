@@ -13,7 +13,7 @@
 
 ## 🎓 **How To Deploy**
 
-<h3>Read <a href="https://github.com/XronTrix10/Telegram-Leecher/wiki/INSTRUCTIONS">INSTRUCTIONS</a></h3>
+<h3>Read <a href="https://github.com/ajithvnr2001/tele-leech-new/wiki/INSTRUCTIONS">INSTRUCTIONS</a></h3>
 
 <br>
 
@@ -77,7 +77,7 @@
 
 ## **⚖️ License**
 
-<h4><a href="https://github.com/XronTrix10/Telegram-Leecher/blob/main/LICENSE">GPL-3.0 license</a></h4>
+<h4><a href="https://github.com/ajithvnr2001/tele-leech-new/blob/main/LICENSE">GPL-3.0 license</a></h4>
 
 <br>
 
