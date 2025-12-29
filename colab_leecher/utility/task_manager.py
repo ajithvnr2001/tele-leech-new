@@ -181,15 +181,20 @@ async def taskScheduler():
 
 async def Do_Leech(source, is_dir, is_ytdl, is_zip, is_unzip, is_dualzip):
     if is_dir:
-        for s in source:
+        for folder_idx, s in enumerate(source, 1):
             if not ospath.exists(s):
                 logging.error("Provided directory does not exist !")
                 await cancelTask("Provided directory does not exist !")
                 return
+            
+            logging.info(f"Processing folder {folder_idx}/{len(source)}: {s}")
+            Messages.download_name = ospath.basename(s)
             Paths.down_path = s
+            
             if is_zip:
                 # Individual file zipping for sequential processing
-                await IndividualZipLeech(Paths.down_path, False)
+                # Pass remove=True to delete original files after upload
+                await IndividualZipLeech(Paths.down_path, True)
             elif is_unzip:
                 await Unzip_Handler(Paths.down_path, False)
                 await Leech(Paths.temp_unzip_path, True)
@@ -206,6 +211,16 @@ async def Do_Leech(source, is_dir, is_ytdl, is_zip, is_unzip, is_dualzip):
                     shutil.copy(s, Paths.temp_dirleech_path)
                     Messages.download_name = ospath.basename(s)
                     await Leech(Paths.temp_dirleech_path, True)
+            
+            # Cleanup BOT_WORK between folders to free space
+            if ospath.exists(Paths.temp_zpath):
+                shutil.rmtree(Paths.temp_zpath)
+            if ospath.exists(Paths.temp_unzip_path):
+                shutil.rmtree(Paths.temp_unzip_path)
+            if ospath.exists(Paths.temp_dirleech_path):
+                shutil.rmtree(Paths.temp_dirleech_path)
+            
+            logging.info(f"Completed folder {folder_idx}/{len(source)}: {ospath.basename(s)}")
     else:
         await downloadManager(source, is_ytdl)
 
