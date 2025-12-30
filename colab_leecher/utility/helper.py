@@ -24,7 +24,53 @@ from colab_leecher.utility.variables import (
 )
 
 
-def isLink(_, __, update):
+# ==================== Upload Log Functions ====================
+# These functions manage a log file on Google Drive to track uploaded files
+# Allows resuming after Colab crash without re-uploading files
+
+def load_upload_log() -> set:
+    """Load the set of already-uploaded file paths from the log file."""
+    uploaded = set()
+    if ospath.exists(Paths.UPLOAD_LOG):
+        try:
+            with open(Paths.UPLOAD_LOG, 'r', encoding='utf-8') as f:
+                for line in f:
+                    uploaded.add(line.strip())
+            logging.info(f"Loaded {len(uploaded)} entries from upload log")
+        except Exception as e:
+            logging.error(f"Error loading upload log: {e}")
+    return uploaded
+
+
+def save_to_upload_log(file_path: str):
+    """Append a successfully uploaded file path to the log."""
+    try:
+        with open(Paths.UPLOAD_LOG, 'a', encoding='utf-8') as f:
+            f.write(file_path + '\n')
+        logging.info(f"Saved to upload log: {ospath.basename(file_path)}")
+    except Exception as e:
+        logging.error(f"Error saving to upload log: {e}")
+
+
+def clear_upload_log():
+    """Delete the upload log file to start fresh."""
+    if ospath.exists(Paths.UPLOAD_LOG):
+        try:
+            os.remove(Paths.UPLOAD_LOG)
+            logging.info("Upload log cleared")
+            return True
+        except Exception as e:
+            logging.error(f"Error clearing upload log: {e}")
+            return False
+    return True
+
+
+def is_already_uploaded(file_path: str, uploaded_set: set) -> bool:
+    """Check if a file has already been uploaded."""
+    return file_path in uploaded_set
+
+
+def isLink(_,  __, update):
     if update.text:
         if "/content/" in str(update.text) or "/home" in str(update.text):
             return True

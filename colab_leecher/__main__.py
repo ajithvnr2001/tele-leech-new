@@ -10,7 +10,7 @@ from colab_leecher.utility.handler import cancelTask
 from .utility.variables import BOT, MSG, BotTimes, Paths
 from .utility.task_manager import taskScheduler, task_starter
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from .utility.helper import isLink, setThumbnail, message_deleter, send_settings
+from .utility.helper import isLink, setThumbnail, message_deleter, send_settings, clear_upload_log
 
 
 src_request_msg = None
@@ -420,6 +420,24 @@ async def unzip_pswd(client, message):
             "Unzip Password Has Been Successfully Set !", quote=True
         )
 
+    await sleep(15)
+    await message_deleter(message, msg)
+
+
+@colab_bot.on_message(filters.command("clearlog") & filters.private)
+async def clear_log(client, message):
+    """Clear the upload log to start fresh (no resume)."""
+    await message.delete()
+    if clear_upload_log():
+        msg = await message.reply_text(
+            "**✅ Upload log cleared!**\n\nNext upload will process all files from the beginning.",
+            quote=True,
+        )
+    else:
+        msg = await message.reply_text(
+            "**❌ Failed to clear upload log!**",
+            quote=True,
+        )
     await sleep(15)
     await message_deleter(message, msg)
 

@@ -85,6 +85,8 @@ class Paths:
     temp_files_dir = f"{WORK_PATH}/leech_temp"
     thumbnail_ytdl = f"{WORK_PATH}/ytdl_thumbnails"
     access_token = "/content/token.pickle"
+    # Progress log saved to Drive for resume after crash
+    UPLOAD_LOG = "/content/drive/MyDrive/tele_leech_upload_log.txt"
 
 
 class Messages:

@@ -35,6 +35,9 @@ from colab_leecher.utility.helper import (
     shortFileName,
     sizeUnit,
     sysINFO,
+    load_upload_log,
+    save_to_upload_log,
+    is_already_uploaded,
 )
 
 
@@ -167,16 +170,27 @@ async def IndividualZipLeech(folder_path: str, remove: bool):
     2. Split if > 1.8GB
     3. Upload split parts
     4. Delete zip and parts before moving to next file
+    5. Save to upload log for resume capability
     """
     global BOT, BotTimes, Messages, Paths, Transfer
 
+    # Load already-uploaded files for resume capability
+    uploaded_files = load_upload_log()
+    
     files = [str(p) for p in pathlib.Path(folder_path).glob("**/*") if p.is_file()]
     folder_name = ospath.basename(folder_path)
     total_files = len(files)
+    skipped_count = 0
 
     for idx, f in enumerate(natsorted(files), 1):
         file_path = f
         file_name = ospath.basename(file_path)
+
+        # Skip already uploaded files (resume capability)
+        if is_already_uploaded(file_path, uploaded_files):
+            logging.info(f"SKIPPING (already uploaded): {file_name}")
+            skipped_count += 1
+            continue
 
         logging.info(f"Processing file {idx}/{total_files}: {file_name}")
 
@@ -231,6 +245,9 @@ async def IndividualZipLeech(folder_path: str, remove: bool):
         # Clear temp zip directory
         if ospath.exists(Paths.temp_zpath):
             shutil.rmtree(Paths.temp_zpath)
+
+        # Save to upload log for resume capability
+        save_to_upload_log(file_path)
 
         # Remove original file if requested
         if remove and ospath.exists(file_path):
