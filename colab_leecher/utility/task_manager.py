@@ -126,11 +126,13 @@ async def taskScheduler():
 
     if ospath.exists(Paths.WORK_PATH):
         shutil.rmtree(Paths.WORK_PATH)
-        # makedirs(Paths.WORK_PATH)
+    
+    makedirs(Paths.WORK_PATH)
+    
+    # Only create down_path if it's inside WORK_PATH (not for dir-leech where it's the Drive folder)
+    if not is_dir:
         makedirs(Paths.down_path)
-    else:
-        makedirs(Paths.WORK_PATH)
-        makedirs(Paths.down_path)
+    
     Messages.link_p = str(DUMP_ID)[4:]
 
     try:
