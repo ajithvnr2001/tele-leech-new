@@ -174,8 +174,8 @@ async def IndividualZipLeech(folder_path: str, remove: bool):
     """
     global BOT, BotTimes, Messages, Paths, Transfer
 
-    # Load already-uploaded files for resume capability
-    uploaded_files = load_upload_log()
+    # Load already-uploaded files for resume capability (log stored in source folder)
+    uploaded_files = load_upload_log(folder_path)
     
     files = [str(p) for p in pathlib.Path(folder_path).glob("**/*") if p.is_file()]
     folder_name = ospath.basename(folder_path)
@@ -246,8 +246,8 @@ async def IndividualZipLeech(folder_path: str, remove: bool):
         if ospath.exists(Paths.temp_zpath):
             shutil.rmtree(Paths.temp_zpath)
 
-        # Save to upload log for resume capability
-        save_to_upload_log(file_path)
+        # Save to upload log for resume capability (log stored in source folder)
+        save_to_upload_log(folder_path, file_path)
 
         # Remove original file if requested
         if remove and ospath.exists(file_path):

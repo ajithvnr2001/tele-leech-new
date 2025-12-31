@@ -25,39 +25,51 @@ from colab_leecher.utility.variables import (
 
 
 # ==================== Upload Log Functions ====================
-# These functions manage a log file on Google Drive to track uploaded files
+# These functions manage a log file inside each source folder to track uploaded files
 # Allows resuming after Colab crash without re-uploading files
 
-def load_upload_log() -> set:
-    """Load the set of already-uploaded file paths from the log file."""
+def get_log_path(folder_path: str) -> str:
+    """Get the path to the upload log file inside the source folder."""
+    return ospath.join(folder_path, ".upload_log.txt")
+
+
+def load_upload_log(folder_path: str) -> set:
+    """Load the set of already-uploaded file paths from the folder's log file."""
     uploaded = set()
-    if ospath.exists(Paths.UPLOAD_LOG):
+    log_path = get_log_path(folder_path)
+    if ospath.exists(log_path):
         try:
-            with open(Paths.UPLOAD_LOG, 'r', encoding='utf-8') as f:
+            with open(log_path, 'r', encoding='utf-8') as f:
                 for line in f:
                     uploaded.add(line.strip())
-            logging.info(f"Loaded {len(uploaded)} entries from upload log")
+            logging.info(f"Loaded {len(uploaded)} entries from upload log in {ospath.basename(folder_path)}")
         except Exception as e:
             logging.error(f"Error loading upload log: {e}")
     return uploaded
 
 
-def save_to_upload_log(file_path: str):
-    """Append a successfully uploaded file path to the log."""
+def save_to_upload_log(folder_path: str, file_path: str):
+    """Append a successfully uploaded file path to the folder's log."""
+    log_path = get_log_path(folder_path)
     try:
-        with open(Paths.UPLOAD_LOG, 'a', encoding='utf-8') as f:
+        with open(log_path, 'a', encoding='utf-8') as f:
             f.write(file_path + '\n')
         logging.info(f"Saved to upload log: {ospath.basename(file_path)}")
     except Exception as e:
         logging.error(f"Error saving to upload log: {e}")
 
 
-def clear_upload_log():
-    """Delete the upload log file to start fresh."""
-    if ospath.exists(Paths.UPLOAD_LOG):
+def clear_upload_log(folder_path: str = None):
+    """Delete the upload log file to start fresh. If no path given, uses Paths.UPLOAD_LOG for backward compat."""
+    if folder_path:
+        log_path = get_log_path(folder_path)
+    else:
+        log_path = Paths.UPLOAD_LOG
+    
+    if ospath.exists(log_path):
         try:
-            os.remove(Paths.UPLOAD_LOG)
-            logging.info("Upload log cleared")
+            os.remove(log_path)
+            logging.info(f"Upload log cleared: {log_path}")
             return True
         except Exception as e:
             logging.error(f"Error clearing upload log: {e}")
@@ -68,6 +80,7 @@ def clear_upload_log():
 def is_already_uploaded(file_path: str, uploaded_set: set) -> bool:
     """Check if a file has already been uploaded."""
     return file_path in uploaded_set
+
 
 
 def isLink(_,  __, update):
