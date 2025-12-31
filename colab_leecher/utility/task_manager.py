@@ -81,6 +81,8 @@ async def taskScheduler():
     Messages.download_name = ""
     Messages.task_msg = ""
     Messages.status_head = f"<b>📥 DOWNLOADING » </b>\n"
+    # Reset Paths.down_path to default (prevents state persistence from previous dir-leech tasks)
+    Paths.down_path = f"{Paths.WORK_PATH}/Downloads"
 
     if is_dir:
         if not ospath.exists(BOT.SOURCE[0]):
