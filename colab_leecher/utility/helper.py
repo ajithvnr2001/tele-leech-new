@@ -82,6 +82,33 @@ def is_already_uploaded(file_path: str, uploaded_set: set) -> bool:
     return file_path in uploaded_set
 
 
+def get_free_disk_space() -> int:
+    """Get free disk space in bytes."""
+    import shutil
+    total, used, free = shutil.disk_usage("/")
+    return free
+
+
+def check_disk_space(min_gb: float = 5.0) -> tuple[bool, float]:
+    """Check if there's enough disk space. Returns (is_ok, free_gb)."""
+    free_bytes = get_free_disk_space()
+    free_gb = free_bytes / (1024 ** 3)
+    return (free_gb >= min_gb, round(free_gb, 2))
+
+
+def format_elapsed_time(seconds: float) -> str:
+    """Format elapsed seconds into human-readable string."""
+    if seconds < 60:
+        return f"{int(seconds)}s"
+    elif seconds < 3600:
+        mins = int(seconds // 60)
+        secs = int(seconds % 60)
+        return f"{mins}m {secs}s"
+    else:
+        hours = int(seconds // 3600)
+        mins = int((seconds % 3600) // 60)
+        return f"{hours}h {mins}m"
+
 
 def isLink(_,  __, update):
     if update.text:

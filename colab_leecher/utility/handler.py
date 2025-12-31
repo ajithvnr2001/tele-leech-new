@@ -38,6 +38,8 @@ from colab_leecher.utility.helper import (
     load_upload_log,
     save_to_upload_log,
     is_already_uploaded,
+    check_disk_space,
+    format_elapsed_time,
 )
 
 
@@ -174,10 +176,28 @@ async def IndividualZipLeech(folder_path: str, remove: bool):
     """
     global BOT, BotTimes, Messages, Paths, Transfer
 
+    # Check disk space before starting
+    disk_ok, free_gb = check_disk_space(5.0)
+    if not disk_ok:
+        logging.warning(f"Low disk space warning: {free_gb}GB free")
+        try:
+            await MSG.status_msg.edit_text(
+                text=f"⚠️ <b>LOW DISK SPACE WARNING</b>\n\nOnly {free_gb}GB free. Recommend > 5GB.\n\nContinuing anyway...",
+                reply_markup=keyboard(),
+            )
+        except:
+            pass
+    
+    # Start timer for summary
+    start_time = time()
+    total_size_uploaded = 0
+
     # Load already-uploaded files for resume capability (log stored in source folder)
     uploaded_files = load_upload_log(folder_path)
     
-    files = [str(p) for p in pathlib.Path(folder_path).glob("**/*") if p.is_file()]
+    # Exclude log files from processing
+    files = [str(p) for p in pathlib.Path(folder_path).glob("**/*") 
+             if p.is_file() and not p.name.startswith('.upload_log')]
     folder_name = ospath.basename(folder_path)
     total_files = len(files)
     skipped_count = 0
@@ -235,8 +255,10 @@ async def IndividualZipLeech(folder_path: str, remove: bool):
                 logging.error(f"Error updating status: {e}")
 
             await upload_file(part_path, part_name)
-            Transfer.up_bytes.append(os.stat(part_path).st_size)
+            part_size = os.stat(part_path).st_size
+            Transfer.up_bytes.append(part_size)
             Transfer.sent_file_names.append(part_name)
+            total_size_uploaded += part_size
 
             # Delete part after upload
             os.remove(part_path)
@@ -253,6 +275,34 @@ async def IndividualZipLeech(folder_path: str, remove: bool):
         if remove and ospath.exists(file_path):
             os.remove(file_path)
             logging.info(f"Deleted original file: {file_name}")
+
+    # Calculate elapsed time
+    end_time = time()
+    elapsed_seconds = end_time - start_time
+    elapsed_str = format_elapsed_time(elapsed_seconds)
+    
+    # Summary
+    uploaded_count = total_files - skipped_count
+    summary_msg = (
+        f"\n\n<b>📊 SUMMARY</b>\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📁 Folder: <code>{folder_name}</code>\n"
+        f"📦 Total Files: {total_files}\n"
+        f"✅ Uploaded: {uploaded_count}\n"
+        f"⏭️ Skipped: {skipped_count}\n"
+        f"💾 Total Size: {sizeUnit(total_size_uploaded)}\n"
+        f"⏱️ Time: {elapsed_str}\n"
+    )
+    
+    try:
+        await MSG.status_msg.edit_text(
+            text=Messages.task_msg + summary_msg + sysINFO(),
+            reply_markup=keyboard(),
+        )
+    except Exception as e:
+        logging.error(f"Error showing summary: {e}")
+    
+    logging.info(f"Completed: {uploaded_count} uploaded, {skipped_count} skipped, {elapsed_str}")
 
     # Cleanup folder if empty and remove requested
     if remove and ospath.exists(folder_path):
