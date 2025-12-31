@@ -7,7 +7,7 @@ import logging
 import pathlib
 from asyncio import sleep
 from time import time
-from colab_leecher import OWNER, colab_bot
+from colab_leecher import OWNER, DUMP_ID, colab_bot
 from natsort import natsorted
 from datetime import datetime
 from os import makedirs, path as ospath
@@ -201,6 +201,22 @@ async def IndividualZipLeech(folder_path: str, remove: bool):
     folder_name = ospath.basename(folder_path)
     total_files = len(files)
     skipped_count = 0
+    uploaded_parts_list = []  # Track uploaded parts for index
+
+    # Send folder header message to dump channel
+    folder_size = getSize(folder_path)
+    header_msg = (
+        f"\n\n📂 <b>FOLDER: {folder_name}</b>\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"📦 Files: {total_files}\n"
+        f"💾 Size: {sizeUnit(folder_size)}\n"
+        f"📍 Path: <code>{folder_path}</code>\n"
+    )
+    try:
+        await colab_bot.send_message(DUMP_ID, header_msg)
+        logging.info(f"Sent folder header for: {folder_name}")
+    except Exception as e:
+        logging.error(f"Error sending folder header: {e}")
 
     for idx, f in enumerate(natsorted(files), 1):
         file_path = f
@@ -259,6 +275,7 @@ async def IndividualZipLeech(folder_path: str, remove: bool):
             Transfer.up_bytes.append(part_size)
             Transfer.sent_file_names.append(part_name)
             total_size_uploaded += part_size
+            uploaded_parts_list.append(part_name)  # Track for index
 
             # Delete part after upload
             os.remove(part_path)
@@ -303,6 +320,29 @@ async def IndividualZipLeech(folder_path: str, remove: bool):
         logging.error(f"Error showing summary: {e}")
     
     logging.info(f"Completed: {uploaded_count} uploaded, {skipped_count} skipped, {elapsed_str}")
+
+    # Send index message to dump channel
+    if uploaded_parts_list:
+        index_lines = [f"{i}. {name}" for i, name in enumerate(uploaded_parts_list, 1)]
+        # Split into chunks of 50 if too many files
+        for chunk_start in range(0, len(index_lines), 50):
+            chunk = index_lines[chunk_start:chunk_start + 50]
+            chunk_num = (chunk_start // 50) + 1
+            total_chunks = (len(index_lines) + 49) // 50
+            
+            index_msg = (
+                f"\n\n📋 <b>INDEX - {folder_name}</b>"
+                + (f" (Part {chunk_num}/{total_chunks})" if total_chunks > 1 else "") + "\n"
+                f"━━━━━━━━━━━━━━━\n"
+                + "\n".join(chunk) + "\n"
+                f"━━━━━━━━━━━━━━━\n"
+                f"✅ Total: {len(uploaded_parts_list)} parts uploaded\n"
+            )
+            try:
+                await colab_bot.send_message(DUMP_ID, index_msg)
+                logging.info(f"Sent index message for: {folder_name}")
+            except Exception as e:
+                logging.error(f"Error sending index: {e}")
 
     # Cleanup folder if empty and remove requested
     if remove and ospath.exists(folder_path):
