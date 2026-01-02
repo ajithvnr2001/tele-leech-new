@@ -5,7 +5,7 @@ import re
 import logging
 import subprocess
 from datetime import datetime
-from colab_leecher.utility.helper import sizeUnit, status_bar
+from colab_leecher.utility.helper import sizeUnit, status_bar, clean_filename
 from colab_leecher.utility.variables import BOT, Aria2c, Paths, Messages, BotTimes
 
 
@@ -69,6 +69,9 @@ def get_Aria2c_Name(link):
     name = filename.split("/")[-1]
     if len(name) == 0:
         name = "UNKNOWN DOWNLOAD NAME"
+    else:
+        # Clean the filename: remove domains, URL decode, format with dots
+        name = clean_filename(name)
     return name
 
 
