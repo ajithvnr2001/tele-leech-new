@@ -147,11 +147,19 @@ def clean_filename(filename: str) -> str:
         if len(parts[1]) <= 5:  # Reasonable extension length
             name, ext = parts[0], "." + parts[1]
     
-    # Remove common domain patterns
+    # Remove ANY domain-like patterns at start of filename
+    # Matches: www.anything.xyz, anything.xyz, anything.co.uk, etc.
     domain_patterns = [
-        r'www\.[a-zA-Z0-9-]+\.(lc|win|com|net|org|in|co|io|me|tv|cc|ws|to|lt|nl|eu)\s*[-–—]?\s*',
-        r'[a-zA-Z0-9]+\.(lc|win|com|net|org|in|co|io|me|tv|cc|ws|to|lt|nl|eu)\s*[-–—]?\s*',
-        r'\[?(1TamilMV|TamilRockers|TamilBlasters|TamilYogi|Tamilgun|HDHub4u|MovieRulz|Moviesda|Isaimini|Kuttymovies|TamilDBox)\]?\s*[-–—]?\s*',
+        # www.domain.tld at start
+        r'^www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}\s*[-–—]?\s*',
+        # domain.tld at very start (before actual movie name)
+        r'^[a-zA-Z0-9]+\.[a-zA-Z]{2,10}\s*[-–—]\s*',
+        # common multi-part TLDs
+        r'^[a-zA-Z0-9-]+\.(co|com|org|net)\.[a-zA-Z]{2,}\s*[-–—]?\s*',
+        # Any "word.word -" pattern at start (catches most domain prefixes)
+        r'^[a-zA-Z0-9]+\.[a-zA-Z0-9]+\s*[-–—]\s*',
+        # Site tags in brackets anywhere
+        r'\[?(1TamilMV|TamilRockers|TamilBlasters|TamilYogi|Tamilgun|HDHub4u|MovieRulz|Moviesda|Isaimini|Kuttymovies|TamilDBox|TamilMV|DVDPlay|MkvCinemas|MkvMoviesPoint|Bolly4u|WorldFree4u|SSRMovies|ExtraMovies|9xMovies|Filmyzilla|Mp4Moviez)\]?\s*[-–—]?\s*',
     ]
     for pattern in domain_patterns:
         name = re.sub(pattern, '', name, flags=re.IGNORECASE)
