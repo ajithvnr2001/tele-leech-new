@@ -125,6 +125,60 @@ def isLink(_,  __, update):
     return False
 
 
+def clean_filename(filename: str) -> str:
+    """
+    Smart filename cleaner:
+    1. URL-decode (%20 -> space)
+    2. Remove domain names (www.*.lc, www.*.win, etc.)
+    3. Remove common site tags ([TamilRockers], [1TamilMV], etc.)
+    4. Clean special characters
+    5. Format with dots instead of spaces
+    """
+    import re
+    from urllib.parse import unquote
+    
+    # URL decode
+    name = unquote(filename)
+    
+    # Get extension
+    ext = ""
+    if "." in name:
+        parts = name.rsplit(".", 1)
+        if len(parts[1]) <= 5:  # Reasonable extension length
+            name, ext = parts[0], "." + parts[1]
+    
+    # Remove common domain patterns
+    domain_patterns = [
+        r'www\.[a-zA-Z0-9-]+\.(lc|win|com|net|org|in|co|io|me|tv|cc|ws|to|lt|nl|eu)\s*[-–—]?\s*',
+        r'[a-zA-Z0-9]+\.(lc|win|com|net|org|in|co|io|me|tv|cc|ws|to|lt|nl|eu)\s*[-–—]?\s*',
+        r'\[?(1TamilMV|TamilRockers|TamilBlasters|TamilYogi|Tamilgun|HDHub4u|MovieRulz|Moviesda|Isaimini|Kuttymovies|TamilDBox)\]?\s*[-–—]?\s*',
+    ]
+    for pattern in domain_patterns:
+        name = re.sub(pattern, '', name, flags=re.IGNORECASE)
+    
+    # Remove brackets content that looks like hashes/codes (e.g., [F3E3E284])
+    name = re.sub(r'\[[A-Fa-f0-9]{6,}\]', '', name)
+    
+    # Convert parentheses content (years, quality) to dots
+    # (2004) -> .2004.
+    name = re.sub(r'\((\d{4})\)', r'.\1.', name)
+    name = re.sub(r'\((\d{3,4}p)\)', r'.\1.', name, flags=re.IGNORECASE)
+    
+    # Remove remaining parentheses and brackets
+    name = re.sub(r'[\[\]()]', '', name)
+    
+    # Replace special chars with dots
+    name = re.sub(r'[-–—_\s]+', '.', name)
+    
+    # Clean up multiple dots
+    name = re.sub(r'\.+', '.', name)
+    
+    # Remove leading/trailing dots
+    name = name.strip('.')
+    
+    return name + ext
+
+
 def is_google_drive(link):
     return "drive.google.com" in link
 
