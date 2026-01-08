@@ -151,7 +151,7 @@ def YouTubeDL(url):
                         }
                         ydl.download([url])
         except Exception as e:
-            logging.error(f"YTDL ERROR: {e}")
+            logging.error(f"YTDL ERROR for URL '{url}': {e}")
 
 
 async def get_YT_Name(link):
