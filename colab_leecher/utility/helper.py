@@ -197,7 +197,19 @@ def is_terabox(link):
     return "terabox" in link or "1024tera" in link
 
 def is_ytdl_link(link):
-    return "youtube.com" in link or "youtu.be" in link
+    ytdl_domains = [
+        "youtube.com", "youtu.be",           # YouTube
+        "twitter.com", "x.com",              # Twitter/X
+        "instagram.com",                      # Instagram
+        "facebook.com", "fb.watch",          # Facebook
+        "tiktok.com",                         # TikTok
+        "vimeo.com",                          # Vimeo
+        "dailymotion.com",                    # Dailymotion
+        "twitch.tv",                          # Twitch
+        "reddit.com",                         # Reddit
+        "bilibili.com",                       # Bilibili
+    ]
+    return any(domain in link for domain in ytdl_domains)
 
 def is_telegram(link):
     return "t.me" in link
