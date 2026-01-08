@@ -163,5 +163,6 @@ async def get_YT_Name(link):
             else:
                 return "UNKNOWN DOWNLOAD NAME"
         except Exception as e:
+            logging.error(f"YTDL get_YT_Name ERROR for '{link}': {e}")
             await cancelTask(f"Can't Download from this link. Because: {str(e)}")
             return "UNKNOWN DOWNLOAD NAME"
