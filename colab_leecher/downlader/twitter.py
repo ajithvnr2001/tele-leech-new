@@ -6,11 +6,99 @@ import requests
 from os import path as ospath
 
 
-def get_twitter_video_url(tweet_url: str) -> str:
+def get_tvd_video_urls(tweet_url: str) -> list:
     """
-    Get direct video URL from Twitter using ssstwitter.com service.
-    1. GET homepage to extract dynamic tokens (tt, ts).
-    2. POST to get the download links.
+    Get direct video URLs from Twitter using twittervideodownloader.com service.
+    1. GET homepage for dynamic tokens (csrf and gql) and session.
+    2. POST to get download links.
+    """
+    try:
+        session = requests.Session()
+        home_url = "https://twittervideodownloader.com/en/"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        }
+        
+        # 1. GET homepage for tokens
+        logging.info("Getting tokens from twittervideodownloader homepage...")
+        home_resp = session.get(home_url, headers=headers, timeout=15)
+        if home_resp.status_code != 200:
+            logging.error(f"Failed to get TVD homepage: {home_resp.status_code}")
+            return []
+            
+        html = home_resp.text
+        csrf_token = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', html)
+        gql_token = re.search(r'name="gql" value="([^"]+)"', html)
+        
+        if not csrf_token or not gql_token:
+            logging.error("Could not find dynamic tokens on TVD homepage")
+            return []
+            
+        csrf = csrf_token.group(1)
+        gql = gql_token.group(1)
+        logging.info("Extracted tokens from TVD")
+
+        # 2. POST to get download links
+        api_url = "https://twittervideodownloader.com/download"
+        post_headers = headers.copy()
+        post_headers.update({
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Referer": "https://twittervideodownloader.com/en/",
+            "Origin": "https://twittervideodownloader.com",
+        })
+        
+        data = {
+            "csrfmiddlewaretoken": csrf,
+            "tweet": tweet_url,
+            "gql": gql
+        }
+        
+        logging.info(f"Fetching links from TVD for: {tweet_url}")
+        response = session.post(api_url, headers=post_headers, data=data, timeout=30)
+        
+        if response.status_code == 200:
+            html_res = response.text
+            
+            # Extract links from <a class="btn fw-bold tw-btn btn-sm" href="...">
+            # The links are usually on Twitter CDN (twimg.com)
+            matches = re.findall(r'href=["\'](https://[^"\']*twimg\.com[^"\']+\.mp4[^"\']*)["\']', html_res)
+            
+            if matches:
+                # Get unique links
+                video_urls = list(set(matches))
+                
+                # Sort by quality indicators in URL (higher = better)
+                def get_quality(url):
+                    import re as regex
+                    res_match = regex.search(r'[/_](\d{3,4})[xp_/]', url)
+                    if res_match:
+                        return int(res_match.group(1))
+                    for q in ['1080', '720', '480', '360', '240']:
+                        if q in url:
+                            return int(q)
+                    return 0
+                
+                # Log all found URLs
+                for url in video_urls:
+                    logging.info(f"TVD Found video: quality={get_quality(url)}, url={url[:80]}...")
+                
+                video_urls.sort(key=get_quality, reverse=True)
+                return video_urls
+            else:
+                logging.warning("No video download links found in TVD response")
+                return []
+        else:
+            logging.error(f"TVD POST request failed: {response.status_code}")
+            return []
+            
+    except Exception as e:
+        logging.error(f"TVD scraping error: {e}")
+        return []
+
+
+def get_ssstwitter_urls(tweet_url: str) -> list:
+    """
+    Get direct video URLs from Twitter using ssstwitter.com service.
     """
     try:
         session = requests.Session()
@@ -24,35 +112,29 @@ def get_twitter_video_url(tweet_url: str) -> str:
         home_resp = session.get(home_url, headers=headers, timeout=15)
         if home_resp.status_code != 200:
             logging.error(f"Failed to get ssstwitter homepage: {home_resp.status_code}")
-            return ""
+            return []
             
-        # Extract tt and ts from the form's include-vals or hx-vals
-        # Format can be: include-vals="tt:'...',ts:...,source:'form'"
         html = home_resp.text
-        
-        # More flexible regex that handles quoted and unquoted values
         tt_match = re.search(r'tt\s*:\s*[\'"]?([a-f0-9]{32})[\'"]?', html)
         ts_match = re.search(r'ts\s*:\s*(\d+)', html)
         
         if not tt_match or not ts_match:
-            # Try alternate pattern (json-like or attribute names)
             tt_match = re.search(r'["\']tt["\']\s*[:=]\s*["\']?([^"\',]+)["\']?', html)
             ts_match = re.search(r'["\']ts["\']\s*[:=]\s*["\']?(\d+)["\']?', html)
             
         if not tt_match or not ts_match:
-            logging.error(f"Could not find dynamic tokens (tt/ts) on ssstwitter homepage. HTML preview: {html[:500]}")
-            return ""
+            logging.error(f"Could not find tokens on ssstwitter. HTML preview: {html[:500]}")
+            return []
             
         tt = tt_match.group(1)
         ts = ts_match.group(1)
-        logging.info(f"Extracted tokens: tt={tt[:5]}..., ts={ts}")
+        logging.info(f"Extracted ssstwitter tokens: tt={tt[:5]}..., ts={ts}")
 
-        # 2. POST to get download links (form posts to homepage)
+        # 2. POST to get download links
         api_url = "https://ssstwitter.com/"
         post_headers = headers.copy()
         post_headers.update({
             "Content-Type": "application/x-www-form-urlencoded",
-            "Origin": "https://ssstwitter.com",
             "Referer": "https://ssstwitter.com/",
             "HX-Request": "true",
             "HX-Target": "target",
@@ -67,57 +149,66 @@ def get_twitter_video_url(tweet_url: str) -> str:
             "source": "form"
         }
         
-        logging.info(f"Fetching links for: {tweet_url}")
+        logging.info(f"Fetching links from ssstwitter for: {tweet_url}")
         response = session.post(api_url, headers=post_headers, data=data, timeout=30)
         
         if response.status_code == 200:
             html_res = response.text
-            
-            # The links are in <a class="download_link" href="...">
-            # Use a more specific pattern for ssscdn links or twimg links
             video_pattern = r'href=["\'](https://[^"\']*ssscdn\.io[^"\']+)["\']'
             matches = re.findall(video_pattern, html_res)
             
             if not matches:
-                # Try fallback pattern for direct twimg links
                 video_pattern = r'href=["\'](https://[^"\']*twimg\.com[^"\']*\.mp4[^"\']*)["\']'
                 matches = re.findall(video_pattern, html_res)
             
             if matches:
-                # Get unique links
                 video_urls = list(set(matches))
-                
-                # Sort by quality indicators in URL (higher = better)
                 def get_quality(url):
-                    # Check for resolution patterns like /1080x, _1080_, 1080p, etc.
                     import re as regex
                     res_match = regex.search(r'[/_](\d{3,4})[xp_/]', url)
                     if res_match:
                         return int(res_match.group(1))
-                    # Fallback: check for common quality strings
                     for q in ['1080', '720', '480', '360', '240']:
                         if q in url:
                             return int(q)
                     return 0
                 
-                # Log all found URLs with their qualities
                 for url in video_urls:
-                    logging.info(f"Found video: quality={get_quality(url)}, url={url[:80]}...")
+                    logging.info(f"Ssstwitter Found video: quality={get_quality(url)}, url={url[:80]}...")
                 
                 video_urls.sort(key=get_quality, reverse=True)
-                logging.info(f"Returning {len(video_urls)} video URLs (sorted by quality)")
-                return video_urls  # Return ALL urls sorted by quality
+                return video_urls
             else:
-                logging.warning("No video download links found in response HTML")
-                # Log a bit of the HTML for debugging if needed
+                logging.warning("No video download links found in ssstwitter response")
                 return []
         else:
-            logging.error(f"POST request failed: {response.status_code}")
+            logging.error(f"Ssstwitter POST request failed: {response.status_code}")
             return []
             
     except Exception as e:
-        logging.error(f"Scraping error: {e}")
+        logging.error(f"Ssstwitter scraping error: {e}")
         return []
+
+
+def get_twitter_video_url(tweet_url: str) -> list:
+    """
+    Orchestrator to get direct video URLs from Twitter.
+    Tries TVD first, then ssstwitter as fallback.
+    """
+    # 1. Try TwitterVideoDownloader.com (Primary)
+    urls = get_tvd_video_urls(tweet_url)
+    if urls:
+        logging.info(f"Using TwitterVideoDownloader.com - Found {len(urls)} videos")
+        return urls
+        
+    # 2. Try ssstwitter.com (Fallback)
+    logging.info("TVD failed or no links, trying ssstwitter.com...")
+    urls = get_ssstwitter_urls(tweet_url)
+    if urls:
+        logging.info(f"Using ssstwitter.com - Found {len(urls)} videos")
+        return urls
+        
+    return []
 
 
 def is_twitter_link(link: str) -> bool:
