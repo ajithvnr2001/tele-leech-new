@@ -209,7 +209,9 @@ def is_ytdl_link(link):
         "reddit.com",                         # Reddit
         "bilibili.com",                       # Bilibili
     ]
-    return any(domain in link for domain in ytdl_domains)
+    result = any(domain in link for domain in ytdl_domains)
+    logging.info(f"is_ytdl_link check: '{link[:50]}...' = {result}")
+    return result
 
 def is_telegram(link):
     return "t.me" in link
