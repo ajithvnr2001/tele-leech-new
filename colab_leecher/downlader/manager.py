@@ -173,6 +173,14 @@ async def get_d_name(link: str):
     elif is_telegram(link):
         media, _ = await media_Identifier(link)
         Messages.download_name = media.file_name if hasattr(media, "file_name") else "None"  # type: ignore
+    elif is_twitter_link(link):
+        # Extract tweet ID for name
+        import re
+        tweet_id_match = re.search(r'/status/(\d+)', link)
+        if tweet_id_match:
+            Messages.download_name = f"twitter_{tweet_id_match.group(1)}.mp4"
+        else:
+            Messages.download_name = "twitter_video.mp4"
     elif is_ytdl_link(link):
         Messages.download_name = await get_YT_Name(link)
     elif is_mega(link):

@@ -73,7 +73,9 @@ def get_twitter_video_url(tweet_url: str) -> str:
 
 def is_twitter_link(link: str) -> bool:
     """Check if link is a Twitter/X URL."""
-    return "twitter.com" in link or "x.com" in link
+    result = "twitter.com" in link or "x.com" in link
+    logging.info(f"is_twitter_link check: '{link[:50]}...' = {result}")
+    return result
 
 
 async def download_twitter_video(tweet_url: str, download_path: str) -> str:
