@@ -47,8 +47,8 @@ def get_twitter_video_url(tweet_url: str) -> str:
         ts = ts_match.group(1)
         logging.info(f"Extracted tokens: tt={tt[:5]}..., ts={ts}")
 
-        # 2. POST to get download links
-        api_url = "https://ssstwitter.com/r" # Note: response is actually HTML
+        # 2. POST to get download links (form posts to homepage)
+        api_url = "https://ssstwitter.com/"
         post_headers = headers.copy()
         post_headers.update({
             "Content-Type": "application/x-www-form-urlencoded",
