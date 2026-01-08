@@ -105,20 +105,19 @@ def get_twitter_video_url(tweet_url: str) -> str:
                     logging.info(f"Found video: quality={get_quality(url)}, url={url[:80]}...")
                 
                 video_urls.sort(key=get_quality, reverse=True)
-                best_url = video_urls[0]
-                logging.info(f"Selected BEST quality ({get_quality(best_url)}p): {best_url[:80]}...")
-                return best_url
+                logging.info(f"Returning {len(video_urls)} video URLs (sorted by quality)")
+                return video_urls  # Return ALL urls sorted by quality
             else:
                 logging.warning("No video download links found in response HTML")
                 # Log a bit of the HTML for debugging if needed
-                return ""
+                return []
         else:
             logging.error(f"POST request failed: {response.status_code}")
-            return ""
+            return []
             
     except Exception as e:
         logging.error(f"Scraping error: {e}")
-        return ""
+        return []
 
 
 def is_twitter_link(link: str) -> bool:

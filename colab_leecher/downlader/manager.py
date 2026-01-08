@@ -73,11 +73,14 @@ async def downloadManager(source, is_ytdl: bool):
                     except Exception:
                         pass
                     
-                    video_url = get_twitter_video_url(link)
-                    if video_url:
-                        # Download using aria2c with the direct video URL
-                        Aria2c.link_info = False
-                        await aria2_Download(video_url, i + 1)
+                    video_urls = get_twitter_video_url(link)
+                    if video_urls:
+                        # Download ALL video URLs (different qualities)
+                        logging.info(f"Downloading {len(video_urls)} video(s) from Twitter")
+                        for j, video_url in enumerate(video_urls):
+                            logging.info(f"Downloading video {j+1}/{len(video_urls)}: {video_url[:60]}...")
+                            Aria2c.link_info = False
+                            await aria2_Download(video_url, i + 1)
                     else:
                         # Fallback to yt-dlp
                         logging.info(f"ssstwitter failed, trying yt-dlp for: {link}")
