@@ -12,6 +12,7 @@ from colab_leecher.downlader.ytdl import YTDL_Status, get_YT_Name
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from colab_leecher.downlader.aria2 import aria2_Download, get_Aria2c_Name
 from colab_leecher.downlader.telegram import TelegramDownload, media_Identifier
+from colab_leecher.downlader.twitter import get_twitter_video_url, is_twitter_link
 from colab_leecher.utility.variables import (
     BOT,
     Gdrive,
@@ -62,6 +63,27 @@ async def downloadManager(source, is_ytdl: bool):
                     await g_DownLoad(link, i + 1)
                 elif is_telegram(link):
                     await TelegramDownload(link, i + 1)
+                elif is_twitter_link(link):
+                    # Try ssstwitter.com first for Twitter videos
+                    twitter_msg = f"<b>PLEASE WAIT ⌛</b>\n\n__Getting Twitter Video For__\n\n<code>{link}</code>"
+                    try:
+                        await MSG.status_msg.edit_text(
+                            text=twitter_msg + sysINFO(), reply_markup=keyboard()
+                        )
+                    except Exception:
+                        pass
+                    
+                    video_url = get_twitter_video_url(link)
+                    if video_url:
+                        # Download using aria2c with the direct video URL
+                        Aria2c.link_info = False
+                        await aria2_Download(video_url, i + 1)
+                    else:
+                        # Fallback to yt-dlp
+                        logging.info(f"ssstwitter failed, trying yt-dlp for: {link}")
+                        await YTDL_Status(link, i + 1)
+                        while not isYtdlComplete():
+                            await sleep(2)
                 elif is_ytdl_link(link):
                     await YTDL_Status(link, i + 1)
                     try:
