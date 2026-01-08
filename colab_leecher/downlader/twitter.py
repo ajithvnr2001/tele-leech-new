@@ -87,16 +87,26 @@ def get_twitter_video_url(tweet_url: str) -> str:
                 # Get unique links
                 video_urls = list(set(matches))
                 
-                # Sort by quality indicators in URL
+                # Sort by quality indicators in URL (higher = better)
                 def get_quality(url):
+                    # Check for resolution patterns like /1080x, _1080_, 1080p, etc.
+                    import re as regex
+                    res_match = regex.search(r'[/_](\d{3,4})[xp_/]', url)
+                    if res_match:
+                        return int(res_match.group(1))
+                    # Fallback: check for common quality strings
                     for q in ['1080', '720', '480', '360', '240']:
-                        if f"_{q}_" in url or f"/{q}/" in url or q in url:
+                        if q in url:
                             return int(q)
                     return 0
                 
+                # Log all found URLs with their qualities
+                for url in video_urls:
+                    logging.info(f"Found video: quality={get_quality(url)}, url={url[:80]}...")
+                
                 video_urls.sort(key=get_quality, reverse=True)
                 best_url = video_urls[0]
-                logging.info(f"Successfully found video URL: {best_url[:60]}...")
+                logging.info(f"Selected BEST quality ({get_quality(best_url)}p): {best_url[:80]}...")
                 return best_url
             else:
                 logging.warning("No video download links found in response HTML")
