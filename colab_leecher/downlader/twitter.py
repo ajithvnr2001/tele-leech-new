@@ -27,18 +27,20 @@ def get_twitter_video_url(tweet_url: str) -> str:
             return ""
             
         # Extract tt and ts from the form's include-vals or hx-vals
-        # Format usually: include-vals='"tt":"...", "ts": "..."' or similar json-like string
+        # Format can be: include-vals="tt:'...',ts:...,source:'form'"
         html = home_resp.text
-        tt_match = re.search(r'["\']tt["\']\s*:\s*["\']([^"\']+)["\']', html)
-        ts_match = re.search(r'["\']ts["\']\s*:\s*["\']([^"\']+)["\']', html)
+        
+        # More flexible regex that handles quoted and unquoted values
+        tt_match = re.search(r'tt\s*:\s*[\'"]?([a-f0-9]{32})[\'"]?', html)
+        ts_match = re.search(r'ts\s*:\s*(\d+)', html)
         
         if not tt_match or not ts_match:
-            # Try alternate pattern if first one fails
-            tt_match = re.search(r'name=["\']tt["\']\s+value=["\']([^"\']+)["\']', html)
-            ts_match = re.search(r'name=["\']ts["\']\s+value=["\']([^"\']+)["\']', html)
+            # Try alternate pattern (json-like or attribute names)
+            tt_match = re.search(r'["\']tt["\']\s*[:=]\s*["\']?([^"\',]+)["\']?', html)
+            ts_match = re.search(r'["\']ts["\']\s*[:=]\s*["\']?(\d+)["\']?', html)
             
         if not tt_match or not ts_match:
-            logging.error("Could not find dynamic tokens (tt/ts) on ssstwitter homepage")
+            logging.error(f"Could not find dynamic tokens (tt/ts) on ssstwitter homepage. HTML preview: {html[:500]}")
             return ""
             
         tt = tt_match.group(1)
