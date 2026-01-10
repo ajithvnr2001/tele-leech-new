@@ -226,27 +226,60 @@ async def Do_Leech(source, is_dir, is_ytdl, is_zip, is_unzip, is_dualzip):
             
             logging.info(f"Completed folder {folder_idx}/{len(source)}: {ospath.basename(s)}")
     else:
-        await downloadManager(source, is_ytdl)
-
-        Transfer.total_down_size = getSize(Paths.down_path)
-
-        # Renaming Files With Custom Name
-        applyCustomName()
-
-        # Preparing To Upload
-        if is_zip:
-            await Zip_Handler(Paths.down_path, True, True)
-            await Leech(Paths.temp_zpath, True)
-        elif is_unzip:
-            await Unzip_Handler(Paths.down_path, True)
-            await Leech(Paths.temp_unzip_path, True)
-        elif is_dualzip:
-            print("Got into un doubled zip")
-            await Unzip_Handler(Paths.down_path, True)
-            await Zip_Handler(Paths.temp_unzip_path, True, True)
-            await Leech(Paths.temp_zpath, True)
-        else:
-            await Leech(Paths.down_path, True)
+        # SEQUENTIAL PROCESSING: Download -> Upload -> Cleanup for each link
+        total_links = len(source)
+        for link_idx, link in enumerate(source, 1):
+            logging.info(f"[Sequential] Processing link {link_idx}/{total_links}: {link[:50]}...")
+            
+            # Reset download path for this link
+            Paths.down_path = f"{Paths.WORK_PATH}/Downloads"
+            if ospath.exists(Paths.down_path):
+                shutil.rmtree(Paths.down_path)
+            makedirs(Paths.down_path)
+            
+            # Get download name for this specific link
+            await get_d_name(link)
+            
+            # If zip mode, create subfolder for this link
+            if is_zip:
+                Paths.down_path = ospath.join(Paths.down_path, Messages.download_name)
+                if not ospath.exists(Paths.down_path):
+                    makedirs(Paths.down_path)
+            
+            # Download this single link
+            await downloadManager([link], is_ytdl, link_idx)
+            
+            Transfer.total_down_size = getSize(Paths.down_path)
+            
+            # Renaming Files With Custom Name
+            applyCustomName()
+            
+            # Process and Upload this link
+            if is_zip:
+                await Zip_Handler(Paths.down_path, True, True)
+                await Leech(Paths.temp_zpath, True)
+            elif is_unzip:
+                await Unzip_Handler(Paths.down_path, True)
+                await Leech(Paths.temp_unzip_path, True)
+            elif is_dualzip:
+                await Unzip_Handler(Paths.down_path, True)
+                await Zip_Handler(Paths.temp_unzip_path, True, True)
+                await Leech(Paths.temp_zpath, True)
+            else:
+                await Leech(Paths.down_path, True)
+            
+            # Cleanup after this link before next iteration
+            logging.info(f"[Sequential] Cleanup after link {link_idx}/{total_links}")
+            if ospath.exists(Paths.down_path):
+                shutil.rmtree(Paths.down_path)
+            if ospath.exists(Paths.temp_zpath):
+                shutil.rmtree(Paths.temp_zpath)
+            if ospath.exists(Paths.temp_unzip_path):
+                shutil.rmtree(Paths.temp_unzip_path)
+            if ospath.exists(Paths.temp_files_dir):
+                shutil.rmtree(Paths.temp_files_dir)
+            
+            logging.info(f"[Sequential] Completed link {link_idx}/{total_links}")
 
     await SendLogs(True)
 
@@ -261,27 +294,53 @@ async def Do_Mirror(source, is_ytdl, is_zip, is_unzip, is_dualzip):
     if not ospath.exists(Paths.mirror_dir):
         makedirs(Paths.mirror_dir)
 
-    await downloadManager(source, is_ytdl)
+    # SEQUENTIAL PROCESSING: Download -> Mirror -> Cleanup for each link
+    total_links = len(source)
+    for link_idx, link in enumerate(source, 1):
+        logging.info(f"[Sequential Mirror] Processing link {link_idx}/{total_links}: {link[:50]}...")
+        
+        # Reset download path for this link
+        Paths.down_path = f"{Paths.WORK_PATH}/Downloads"
+        if ospath.exists(Paths.down_path):
+            shutil.rmtree(Paths.down_path)
+        makedirs(Paths.down_path)
+        
+        # Get download name for this specific link
+        await get_d_name(link)
+        
+        # Download this single link
+        await downloadManager([link], is_ytdl, link_idx)
 
-    Transfer.total_down_size = getSize(Paths.down_path)
+        Transfer.total_down_size = getSize(Paths.down_path)
 
-    applyCustomName()
+        applyCustomName()
 
-    cdt = datetime.now()
-    cdt_ = cdt.strftime("Uploaded » %Y-%m-%d %H:%M:%S")
-    mirror_dir_ = ospath.join(Paths.mirror_dir, cdt_)
+        cdt = datetime.now()
+        cdt_ = cdt.strftime(f"Link{str(link_idx).zfill(2)}_%Y-%m-%d_%H-%M-%S")
+        mirror_dir_ = ospath.join(Paths.mirror_dir, cdt_)
 
-    if is_zip:
-        await Zip_Handler(Paths.down_path, True, True)
-        shutil.copytree(Paths.temp_zpath, mirror_dir_)
-    elif is_unzip:
-        await Unzip_Handler(Paths.down_path, True)
-        shutil.copytree(Paths.temp_unzip_path, mirror_dir_)
-    elif is_dualzip:
-        await Unzip_Handler(Paths.down_path, True)
-        await Zip_Handler(Paths.temp_unzip_path, True, True)
-        shutil.copytree(Paths.temp_zpath, mirror_dir_)
-    else:
-        shutil.copytree(Paths.down_path, mirror_dir_)
+        if is_zip:
+            await Zip_Handler(Paths.down_path, True, True)
+            shutil.copytree(Paths.temp_zpath, mirror_dir_)
+        elif is_unzip:
+            await Unzip_Handler(Paths.down_path, True)
+            shutil.copytree(Paths.temp_unzip_path, mirror_dir_)
+        elif is_dualzip:
+            await Unzip_Handler(Paths.down_path, True)
+            await Zip_Handler(Paths.temp_unzip_path, True, True)
+            shutil.copytree(Paths.temp_zpath, mirror_dir_)
+        else:
+            shutil.copytree(Paths.down_path, mirror_dir_)
+        
+        # Cleanup after this link before next iteration
+        logging.info(f"[Sequential Mirror] Cleanup after link {link_idx}/{total_links}")
+        if ospath.exists(Paths.down_path):
+            shutil.rmtree(Paths.down_path)
+        if ospath.exists(Paths.temp_zpath):
+            shutil.rmtree(Paths.temp_zpath)
+        if ospath.exists(Paths.temp_unzip_path):
+            shutil.rmtree(Paths.temp_unzip_path)
+        
+        logging.info(f"[Sequential Mirror] Completed link {link_idx}/{total_links}")
 
     await SendLogs(False)

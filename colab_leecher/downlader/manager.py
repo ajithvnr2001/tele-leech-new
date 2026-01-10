@@ -41,12 +41,18 @@ from colab_leecher.downlader.gdrive import (
 )
 
 
-async def downloadManager(source, is_ytdl: bool):
+async def downloadManager(source, is_ytdl: bool, link_idx: int = 1):
+    """
+    Download manager for all link types.
+    link_idx: The index of the link being processed (for sequential mode logging)
+    """
     message = "\n<b>Please Wait...</b> ⏳\n<i>Merging YTDL Video...</i> 🐬"
     BotTimes.task_start = datetime.now()
     if is_ytdl:
         for i, link in enumerate(source):
-            await YTDL_Status(link, i + 1)
+            # Use link_idx for display when processing single links in sequential mode
+            display_idx = link_idx if len(source) == 1 else i + 1
+            await YTDL_Status(link, display_idx)
         try:
             await MSG.status_msg.edit_text(
                 text=Messages.task_msg + Messages.status_head + message + sysINFO(),
@@ -58,11 +64,13 @@ async def downloadManager(source, is_ytdl: bool):
             await sleep(2)
     else:
         for i, link in enumerate(source):
+            # Use link_idx for display when processing single links in sequential mode
+            display_idx = link_idx if len(source) == 1 else i + 1
             try:
                 if is_google_drive(link):
-                    await g_DownLoad(link, i + 1)
+                    await g_DownLoad(link, display_idx)
                 elif is_telegram(link):
-                    await TelegramDownload(link, i + 1)
+                    await TelegramDownload(link, display_idx)
                 elif is_twitter_link(link):
                     # Try ssstwitter.com first for Twitter videos
                     twitter_msg = f"<b>PLEASE WAIT ⌛</b>\n\n__Getting Twitter Video For__\n\n<code>{link}</code>"
@@ -80,15 +88,15 @@ async def downloadManager(source, is_ytdl: bool):
                         for j, video_url in enumerate(video_urls):
                             logging.info(f"Downloading video {j+1}/{len(video_urls)}: {video_url[:60]}...")
                             Aria2c.link_info = False
-                            await aria2_Download(video_url, i + 1)
+                            await aria2_Download(video_url, display_idx)
                     else:
                         # Fallback to yt-dlp
                         logging.info(f"ssstwitter failed, trying yt-dlp for: {link}")
-                        await YTDL_Status(link, i + 1)
+                        await YTDL_Status(link, display_idx)
                         while not isYtdlComplete():
                             await sleep(2)
                 elif is_ytdl_link(link):
-                    await YTDL_Status(link, i + 1)
+                    await YTDL_Status(link, display_idx)
                     try:
                         await MSG.status_msg.edit_text(
                             text=Messages.task_msg
@@ -104,7 +112,7 @@ async def downloadManager(source, is_ytdl: bool):
                 elif is_mega(link):
                     executor = ProcessPoolExecutor()
                     # await loop.run_in_executor(executor, megadl, link, i + 1)
-                    await megadl(link, i + 1)
+                    await megadl(link, display_idx)
                 elif is_terabox(link):
                     tera_dn = f"<b>PLEASE WAIT ⌛</b>\n\n__Generating Download Link For__\n\n<code>{link}</code>"
                     try:
@@ -114,7 +122,7 @@ async def downloadManager(source, is_ytdl: bool):
                     except Exception as e1:
                         print(f"Couldn't Update text ! Because: {e1}")
 
-                    await terabox_download(link, i + 1)
+                    await terabox_download(link, display_idx)
                 else:
                     aria2_dn = f"<b>PLEASE WAIT ⌛</b>\n\n__Getting Download Info For__\n\n<code>{link}</code>"
                     try:
@@ -124,7 +132,7 @@ async def downloadManager(source, is_ytdl: bool):
                     except Exception as e1:
                         print(f"Couldn't Update text ! Because: {e1}")
                     Aria2c.link_info = False
-                    await aria2_Download(link, i + 1)
+                    await aria2_Download(link, display_idx)
             except Exception as Error:
                 await cancelTask(f"Download Error: {str(Error)}")
                 logging.error(f"Error While Downloading: {Error}")
