@@ -168,16 +168,30 @@ async def taskScheduler():
             MSG.sent_msg = await MSG.sent_msg.reply_text(text=src_text[lin], quote=True)
 
     Messages.src_link = f"https://t.me/c/{Messages.link_p}/{MSG.sent_msg.id}"
-    Messages.task_msg += f"__[{BOT.Mode.type.capitalize()} {BOT.Mode.mode.capitalize()} as {BOT.Setting.stream_upload}]({Messages.src_link})__\n\n"
+    
+    # Set task message based on mode
+    if is_subex:
+        Messages.task_msg += f"__[Subtitle Extraction]({Messages.src_link})__\n\n"
+    else:
+        Messages.task_msg += f"__[{BOT.Mode.type.capitalize()} {BOT.Mode.mode.capitalize()} as {BOT.Setting.stream_upload}]({Messages.src_link})__\n\n"
 
     await MSG.status_msg.delete()
     img = Paths.THMB_PATH if ospath.exists(Paths.THMB_PATH) else Paths.HERO_IMAGE
+    
+    # Set initial status text based on mode
+    if is_subex and is_dir:
+        initial_status = f"\n💎 __Processing directory...__"
+    elif is_subex:
+        initial_status = f"\n💎 __Starting download for extraction...__"
+    else:
+        initial_status = f"\n📝 __Starting DOWNLOAD...__"
+    
     MSG.status_msg = await colab_bot.send_photo(  # type: ignore
         chat_id=OWNER,
         photo=img,
         caption=Messages.task_msg
         + Messages.status_head
-        + f"\n📝 __Starting DOWNLOAD...__"
+        + initial_status
         + sysINFO(),
         reply_markup=keyboard(),
     )
