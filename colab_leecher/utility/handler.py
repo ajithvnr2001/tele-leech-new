@@ -161,63 +161,100 @@ async def SubLeech(folder_path: str, remove: bool):
     if not ospath.exists(sub_temp):
         makedirs(sub_temp)
 
-    files = [str(p) for p in pathlib.Path(folder_path).glob("**/*") if p.is_file()]
+    # Get all video files
+    all_files = [str(p) for p in pathlib.Path(folder_path).glob("**/*") if p.is_file()]
+    video_files = [f for f in all_files if fileType(f) == "video"]
+    total_videos = len(video_files)
     
-    for f in natsorted(files):
-        file_path = f
+    if total_videos == 0:
+        Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n<i>No video files found!</i>\n"
+        try:
+            MSG.status_msg = await MSG.status_msg.edit_text(
+                text=Messages.task_msg + Messages.status_head + sysINFO(),
+                reply_markup=keyboard(),
+            )
+        except Exception:
+            pass
+        return
+    
+    for idx, file_path in enumerate(natsorted(video_files), 1):
+        file_name = ospath.basename(file_path)
+        logging.info(f"[{idx}/{total_videos}] Processing: {file_name}")
         
-        if fileType(file_path) == "video":
-            file_name = ospath.basename(file_path)
-            logging.info(f"Extracting subtitles from: {file_name}")
-            
-            Messages.status_head = f"<b>💎 EXTRACTING SUBS » </b>\n\n<code>{file_name}</code>\n"
+        # Step 1: Show copying status (for directory sources)
+        if not remove:
+            Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n📁 File {idx}/{total_videos}\n\n<code>{file_name}</code>\n\n📋 <i>Copying to Colab...</i>\n"
             try:
                 MSG.status_msg = await MSG.status_msg.edit_text(
-                    text=Messages.task_msg + Messages.status_head + "\n⏳ __Analyzing...__" + sysINFO(),
+                    text=Messages.task_msg + Messages.status_head + sysINFO(),
                     reply_markup=keyboard(),
                 )
             except Exception:
                 pass
-
-            # Determine the path to extract from
-            if not remove:
-                # Source is a directory (e.g., Google Drive) - copy to local temp first
-                if not ospath.exists(video_temp):
-                    makedirs(video_temp)
-                local_video_path = ospath.join(video_temp, file_name)
-                logging.info(f"Copying to Colab temp: {file_name}")
-                shutil.copy(file_path, local_video_path)
-                extract_from_path = local_video_path
-            else:
-                # Source is already in Colab (from download) - extract directly
-                extract_from_path = file_path
-
-            # Extract subtitles
-            subs = await extract_subtitles(extract_from_path, sub_temp)
             
-            # Delete local video copy if we copied it (for directory sources)
-            if not remove and ospath.exists(extract_from_path):
-                os.remove(extract_from_path)
-                logging.info(f"Deleted local copy: {file_name}")
-            
-            if subs:
-                for sub_path in natsorted(subs):
-                    sub_name = ospath.basename(sub_path)
-                    BotTimes.current_time = time()
-                    Messages.status_head = f"<b>📤 UPLOADING SUB » </b>\n\n<code>{sub_name}</code>\n"
-                    try:
-                        MSG.status_msg = await MSG.status_msg.edit_text(
-                            text=Messages.task_msg + Messages.status_head + "\n⏳ __Uploading...__" + sysINFO(),
-                            reply_markup=keyboard(),
-                        )
-                    except Exception:
-                        pass
-                    
-                    await upload_file(sub_path, sub_name)
-                    Transfer.up_bytes.append(os.stat(sub_path).st_size)
-                    os.remove(sub_path)
-            else:
-                logging.info(f"No subtitles found in: {file_name}")
+            if not ospath.exists(video_temp):
+                makedirs(video_temp)
+            local_video_path = ospath.join(video_temp, file_name)
+            shutil.copy(file_path, local_video_path)
+            extract_from_path = local_video_path
+            logging.info(f"Copied to Colab temp: {file_name}")
+        else:
+            extract_from_path = file_path
+        
+        # Step 2: Show extracting status
+        Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n📁 File {idx}/{total_videos}\n\n<code>{file_name}</code>\n\n🔍 <i>Extracting subtitles...</i>\n"
+        try:
+            MSG.status_msg = await MSG.status_msg.edit_text(
+                text=Messages.task_msg + Messages.status_head + sysINFO(),
+                reply_markup=keyboard(),
+            )
+        except Exception:
+            pass
+        
+        # Extract subtitles
+        subs = await extract_subtitles(extract_from_path, sub_temp)
+        
+        # Step 3: Delete local video copy if we copied it
+        if not remove and ospath.exists(extract_from_path):
+            Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n📁 File {idx}/{total_videos}\n\n<code>{file_name}</code>\n\n🗑️ <i>Deleting local copy...</i>\n"
+            try:
+                MSG.status_msg = await MSG.status_msg.edit_text(
+                    text=Messages.task_msg + Messages.status_head + sysINFO(),
+                    reply_markup=keyboard(),
+                )
+            except Exception:
+                pass
+            os.remove(extract_from_path)
+            logging.info(f"Deleted local copy: {file_name}")
+        
+        # Step 4: Upload extracted subtitles
+        if subs:
+            for sub_idx, sub_path in enumerate(natsorted(subs), 1):
+                sub_name = ospath.basename(sub_path)
+                BotTimes.current_time = time()
+                Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n📁 File {idx}/{total_videos}\n\n<code>{file_name}</code>\n\n📤 <i>Uploading: {sub_name}</i>\n"
+                try:
+                    MSG.status_msg = await MSG.status_msg.edit_text(
+                        text=Messages.task_msg + Messages.status_head + sysINFO(),
+                        reply_markup=keyboard(),
+                    )
+                except Exception:
+                    pass
+                
+                await upload_file(sub_path, sub_name)
+                Transfer.up_bytes.append(os.stat(sub_path).st_size)
+                os.remove(sub_path)
+                logging.info(f"Uploaded and deleted: {sub_name}")
+        else:
+            Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n📁 File {idx}/{total_videos}\n\n<code>{file_name}</code>\n\n⚠️ <i>No subtitles found!</i>\n"
+            try:
+                MSG.status_msg = await MSG.status_msg.edit_text(
+                    text=Messages.task_msg + Messages.status_head + sysINFO(),
+                    reply_markup=keyboard(),
+                )
+            except Exception:
+                pass
+            logging.info(f"No subtitles found in: {file_name}")
 
     # Cleanup processed video folder if remove is True (for links - already in Colab)
     if remove and ospath.exists(folder_path):
