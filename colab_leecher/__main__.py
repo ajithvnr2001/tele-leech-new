@@ -78,6 +78,17 @@ async def yt_upload(client, message):
     src_request_msg = await task_starter(message, text)
 
 
+@colab_bot.on_message(filters.command("subex") & filters.private)
+async def sub_extract(client, message):
+    global BOT, src_request_msg
+    BOT.Mode.mode = "subex"
+    BOT.Mode.ytdl = False
+
+    text = "<b>⚡ Send Me MOVIE LINK or PATH 🔗»</b>\n\n🦀 Below is an example\n\n<code>https://link.com/movie.mkv\n/content/drive/MyDrive/movie.mp4</code>"
+
+    src_request_msg = await task_starter(message, text)
+
+
 @colab_bot.on_message(filters.command("settings") & filters.private)
 async def settings(client, message):
     if message.chat.id == OWNER:
@@ -131,21 +142,43 @@ async def handle_url(client, message):
                 break
 
         BOT.SOURCE = temp_source
-        keyboard = InlineKeyboardMarkup(
-            [
-                [InlineKeyboardButton("Regular", callback_data="normal")],
+        
+        # For subex mode, skip type selection and start directly
+        if BOT.Mode.mode == "subex":
+            BOT.Mode.type = "normal"
+            await message.delete()
+            MSG.status_msg = await colab_bot.send_message(
+                chat_id=OWNER,
+                text="#STARTING_TASK\n\n**Starting subtitle extraction...💎**",
+                reply_markup=InlineKeyboardMarkup(
+                    [
+                        [InlineKeyboardButton("Cancel ❌", callback_data="cancel")],
+                    ]
+                ),
+            )
+            BOT.State.task_going = True
+            BOT.State.started = False
+            BotTimes.start_time = datetime.now()
+            event_loop = get_event_loop()
+            BOT.TASK = event_loop.create_task(taskScheduler())  # type: ignore
+            await BOT.TASK
+            BOT.State.task_going = False
+        else:
+            keyboard = InlineKeyboardMarkup(
                 [
-                    InlineKeyboardButton("Compress", callback_data="zip"),
-                    InlineKeyboardButton("Extract", callback_data="unzip"),
-                ],
-                [InlineKeyboardButton("UnDoubleZip", callback_data="undzip")],
-            ]
-        )
-        await message.reply_text(
-            text=f"<b>🐹 Select Type of {BOT.Mode.mode.capitalize()} You Want » </b>\n\nRegular:<i> Normal file upload</i>\nCompress:<i> Zip file upload</i>\nExtract:<i> extract before upload</i>\nUnDoubleZip:<i> Unzip then compress</i>",
-            reply_markup=keyboard,
-            quote=True,
-        )
+                    [InlineKeyboardButton("Regular", callback_data="normal")],
+                    [
+                        InlineKeyboardButton("Compress", callback_data="zip"),
+                        InlineKeyboardButton("Extract", callback_data="unzip"),
+                    ],
+                    [InlineKeyboardButton("UnDoubleZip", callback_data="undzip")],
+                ]
+            )
+            await message.reply_text(
+                text=f"<b>🐹 Select Type of {BOT.Mode.mode.capitalize()} You Want » </b>\n\nRegular:<i> Normal file upload</i>\nCompress:<i> Zip file upload</i>\nExtract:<i> extract before upload</i>\nUnDoubleZip:<i> Unzip then compress</i>",
+                reply_markup=keyboard,
+                quote=True,
+            )
     elif BOT.State.started:
         await message.delete()
         await message.reply_text(
@@ -445,7 +478,7 @@ async def clear_log(client, message):
 @colab_bot.on_message(filters.command("help") & filters.private)
 async def help_command(client, message):
     msg = await message.reply_text(
-        "Send /start To Check If I am alive 🤨\n\nSend /colabxr and follow prompts to start transloading 🚀\n\nSend /settings to edit bot settings ⚙️\n\nSend /setname To Set Custom File Name 📛\n\nSend /zipaswd To Set Password For Zip File 🔐\n\nSend /unzipaswd To Set Password to Extract Archives 🔓\n\n⚠️ **You can ALWAYS SEND an image To Set it as THUMBNAIL for your files 🌄**",
+        "Send /start To Check If I am alive 🤨\n\nSend /tupload To Upload Files to Telegram 🚀\n\nSend /subex To Extract Subtitles and Upload 💎\n\nSend /settings to edit bot settings ⚙️\n\nSend /setname To Set Custom File Name 📛\n\nSend /zipaswd To Set Password For Zip File 🔐\n\nSend /unzipaswd To Set Password to Extract Archives 🔓\n\n⚠️ **You can ALWAYS SEND an image To Set it as THUMBNAIL for your files 🌄**",
         quote=True,
         reply_markup=InlineKeyboardMarkup(
             [

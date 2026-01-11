@@ -27,6 +27,7 @@ from colab_leecher.utility.converters import (
     videoConverter,
     sizeChecker,
 )
+from colab_leecher.utility.sub_extractor import extract_subtitles
 from colab_leecher.utility.helper import (
     fileType,
     getSize,
@@ -134,6 +135,99 @@ async def Leech(folder_path: str, remove: bool):
         shutil.rmtree(Paths.thumbnail_ytdl)
     if ospath.exists(Paths.temp_files_dir):
         shutil.rmtree(Paths.temp_files_dir)
+
+
+async def SubLeech(folder_path: str, remove: bool):
+    """
+    Extract subtitles from video files in folder_path and upload them.
+    
+    For directory sources (remove=False):
+    - Copy each video one by one to Colab temp space
+    - Extract subtitles from the local copy
+    - Delete the local video copy immediately after extraction
+    - Keep original source untouched
+    
+    For link sources (remove=True):
+    - Extract subtitles directly from downloaded files
+    - Main loop handles deletion of the download folder
+    """
+    global BOT, BotTimes, Messages, Paths, Transfer
+    
+    # Temp directory for extracted subtitles
+    sub_temp = ospath.join(Paths.WORK_PATH, "Extracted_Subs")
+    # Temp directory for local video copies (when processing from GDrive/source paths)
+    video_temp = ospath.join(Paths.WORK_PATH, "Video_Temp")
+    
+    if not ospath.exists(sub_temp):
+        makedirs(sub_temp)
+
+    files = [str(p) for p in pathlib.Path(folder_path).glob("**/*") if p.is_file()]
+    
+    for f in natsorted(files):
+        file_path = f
+        
+        if fileType(file_path) == "video":
+            file_name = ospath.basename(file_path)
+            logging.info(f"Extracting subtitles from: {file_name}")
+            
+            Messages.status_head = f"<b>💎 EXTRACTING SUBS » </b>\n\n<code>{file_name}</code>\n"
+            try:
+                MSG.status_msg = await MSG.status_msg.edit_text(
+                    text=Messages.task_msg + Messages.status_head + "\n⏳ __Analyzing...__" + sysINFO(),
+                    reply_markup=keyboard(),
+                )
+            except Exception:
+                pass
+
+            # Determine the path to extract from
+            if not remove:
+                # Source is a directory (e.g., Google Drive) - copy to local temp first
+                if not ospath.exists(video_temp):
+                    makedirs(video_temp)
+                local_video_path = ospath.join(video_temp, file_name)
+                logging.info(f"Copying to Colab temp: {file_name}")
+                shutil.copy(file_path, local_video_path)
+                extract_from_path = local_video_path
+            else:
+                # Source is already in Colab (from download) - extract directly
+                extract_from_path = file_path
+
+            # Extract subtitles
+            subs = await extract_subtitles(extract_from_path, sub_temp)
+            
+            # Delete local video copy if we copied it (for directory sources)
+            if not remove and ospath.exists(extract_from_path):
+                os.remove(extract_from_path)
+                logging.info(f"Deleted local copy: {file_name}")
+            
+            if subs:
+                for sub_path in natsorted(subs):
+                    sub_name = ospath.basename(sub_path)
+                    BotTimes.current_time = time()
+                    Messages.status_head = f"<b>📤 UPLOADING SUB » </b>\n\n<code>{sub_name}</code>\n"
+                    try:
+                        MSG.status_msg = await MSG.status_msg.edit_text(
+                            text=Messages.task_msg + Messages.status_head + "\n⏳ __Uploading...__" + sysINFO(),
+                            reply_markup=keyboard(),
+                        )
+                    except Exception:
+                        pass
+                    
+                    await upload_file(sub_path, sub_name)
+                    Transfer.up_bytes.append(os.stat(sub_path).st_size)
+                    os.remove(sub_path)
+            else:
+                logging.info(f"No subtitles found in: {file_name}")
+
+    # Cleanup processed video folder if remove is True (for links - already in Colab)
+    if remove and ospath.exists(folder_path):
+        shutil.rmtree(folder_path)
+    
+    # Cleanup temp directories
+    if ospath.exists(sub_temp):
+        shutil.rmtree(sub_temp)
+    if ospath.exists(video_temp):
+        shutil.rmtree(video_temp)
 
 
 async def Zip_Handler(down_path: str, is_split: bool, remove: bool):

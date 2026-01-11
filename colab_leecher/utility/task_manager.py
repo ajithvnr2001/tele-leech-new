@@ -29,6 +29,7 @@ from colab_leecher.utility.handler import (
     IndividualZipLeech,
     SendLogs,
     cancelTask,
+    SubLeech,
 )
 from colab_leecher.utility.variables import (
     BOT,
@@ -61,12 +62,17 @@ async def task_starter(message, text):
 async def taskScheduler():
     global BOT, MSG, BotTimes, Messages, Paths, Transfer, TaskError
     src_text = []
-    is_dualzip, is_unzip, is_zip, is_dir = (
+    is_dualzip, is_unzip, is_zip, is_dir, is_subex = (
         BOT.Mode.type == "undzip",
         BOT.Mode.type == "unzip",
         BOT.Mode.type == "zip",
         BOT.Mode.mode == "dir-leech",
+        BOT.Mode.mode == "subex",
     )
+    
+    # Auto-detect if it's a directory mode for subex
+    if is_subex and any(x in str(BOT.SOURCE[0]) for x in ["/content/", "/home"]):
+        is_dir = True
     # Reset Texts
     Messages.download_name = ""
     Messages.task_msg = f"<b>🦞 TASK MODE » </b>"
@@ -177,7 +183,9 @@ async def taskScheduler():
 
     BotTimes.current_time = time()
 
-    if BOT.Mode.mode != "mirror":
+    if BOT.Mode.mode == "subex":
+        await Do_Leech(BOT.SOURCE, is_dir, BOT.Mode.ytdl, False, False, False)
+    elif BOT.Mode.mode != "mirror":
         await Do_Leech(BOT.SOURCE, is_dir, BOT.Mode.ytdl, is_zip, is_unzip, is_dualzip)
     else:
         await Do_Mirror(BOT.SOURCE, BOT.Mode.ytdl, is_zip, is_unzip, is_dualzip)
@@ -208,13 +216,19 @@ async def Do_Leech(source, is_dir, is_ytdl, is_zip, is_unzip, is_dualzip):
                 await Leech(Paths.temp_zpath, True)
             else:
                 if ospath.isdir(s):
-                    await Leech(Paths.down_path, False)
+                    if BOT.Mode.mode == "subex":
+                        await SubLeech(Paths.down_path, False)
+                    else:
+                        await Leech(Paths.down_path, False)
                 else:
                     Transfer.total_down_size = ospath.getsize(s)
                     makedirs(Paths.temp_dirleech_path)
                     shutil.copy(s, Paths.temp_dirleech_path)
                     Messages.download_name = ospath.basename(s)
-                    await Leech(Paths.temp_dirleech_path, True)
+                    if BOT.Mode.mode == "subex":
+                        await SubLeech(Paths.temp_dirleech_path, True)
+                    else:
+                        await Leech(Paths.temp_dirleech_path, True)
             
             # Cleanup BOT_WORK between folders to free space
             if ospath.exists(Paths.temp_zpath):
@@ -265,6 +279,8 @@ async def Do_Leech(source, is_dir, is_ytdl, is_zip, is_unzip, is_dualzip):
                 await Unzip_Handler(Paths.down_path, True)
                 await Zip_Handler(Paths.temp_unzip_path, True, True)
                 await Leech(Paths.temp_zpath, True)
+            elif BOT.Mode.mode == "subex":
+                await SubLeech(Paths.down_path, True)
             else:
                 await Leech(Paths.down_path, True)
             
