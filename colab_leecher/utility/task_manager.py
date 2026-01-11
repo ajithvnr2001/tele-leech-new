@@ -76,9 +76,16 @@ async def taskScheduler():
     # Reset Texts
     Messages.download_name = ""
     Messages.task_msg = f"<b>🦞 TASK MODE » </b>"
+    
+    # Set mode-specific task description
+    if is_subex:
+        mode_desc = "Subtitle Extraction"
+    else:
+        mode_desc = f"{BOT.Mode.type.capitalize()} {BOT.Mode.mode.capitalize()} as {BOT.Setting.stream_upload}"
+    
     Messages.dump_task = (
         Messages.task_msg
-        + f"<i>{BOT.Mode.type.capitalize()} {BOT.Mode.mode.capitalize()} as {BOT.Setting.stream_upload}</i>\n\n<b>🖇️ SOURCES » </b>"
+        + f"<i>{mode_desc}</i>\n\n<b>🖇️ SOURCES » </b>"
     )
     Transfer.sent_file = []
     Transfer.sent_file_names = []
@@ -86,7 +93,13 @@ async def taskScheduler():
     Transfer.up_bytes = [0, 0]
     Messages.download_name = ""
     Messages.task_msg = ""
-    Messages.status_head = f"<b>📥 DOWNLOADING » </b>\n"
+    
+    # Set mode-specific status header
+    if is_subex:
+        Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n"
+    else:
+        Messages.status_head = f"<b>📥 DOWNLOADING » </b>\n"
+    
     # Reset Paths.down_path to default (prevents state persistence from previous dir-leech tasks)
     Paths.down_path = f"{Paths.WORK_PATH}/Downloads"
 
