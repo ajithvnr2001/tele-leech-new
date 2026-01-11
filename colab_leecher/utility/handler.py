@@ -5,6 +5,7 @@ import os
 import shutil
 import logging
 import pathlib
+import asyncio
 from asyncio import sleep
 from time import time
 from colab_leecher import OWNER, DUMP_ID, colab_bot
@@ -196,7 +197,7 @@ async def SubLeech(folder_path: str, remove: bool):
             if not ospath.exists(video_temp):
                 makedirs(video_temp)
             local_video_path = ospath.join(video_temp, file_name)
-            shutil.copy(file_path, local_video_path)
+            await asyncio.to_thread(shutil.copy, file_path, local_video_path)
             extract_from_path = local_video_path
             logging.info(f"Copied to Colab temp: {file_name}")
         else:

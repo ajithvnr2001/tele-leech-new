@@ -3,6 +3,7 @@
 import subprocess
 import json
 import os
+import asyncio
 import logging
 from os import path as ospath
 
@@ -35,7 +36,7 @@ async def extract_subtitles(video_file, output_dir):
 
     extracted_files = []
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        result = await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True, check=True)
         data = json.loads(result.stdout)
         streams = data.get('streams', [])
 
@@ -72,7 +73,7 @@ async def extract_subtitles(video_file, output_dir):
                 output_path
             ]
 
-            extract_result = subprocess.run(extract_cmd, capture_output=True, text=True)
+            extract_result = await asyncio.to_thread(subprocess.run, extract_cmd, capture_output=True, text=True)
 
             if extract_result.returncode == 0:
                 if ospath.exists(output_path) and os.path.getsize(output_path) > 0:
