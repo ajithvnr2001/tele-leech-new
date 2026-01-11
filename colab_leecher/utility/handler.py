@@ -170,8 +170,8 @@ async def SubLeech(folder_path: str, remove: bool):
     if total_videos == 0:
         Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n<i>No video files found!</i>\n"
         try:
-            MSG.status_msg = await MSG.status_msg.edit_text(
-                text=Messages.task_msg + Messages.status_head + sysINFO(),
+            MSG.status_msg = await MSG.status_msg.edit_caption(
+                caption=Messages.task_msg + Messages.status_head + sysINFO(),
                 reply_markup=keyboard(),
             )
         except Exception:
@@ -186,8 +186,8 @@ async def SubLeech(folder_path: str, remove: bool):
         if not remove:
             Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n📁 File {idx}/{total_videos}\n\n<code>{file_name}</code>\n\n📋 <i>Copying to Colab...</i>\n"
             try:
-                MSG.status_msg = await MSG.status_msg.edit_text(
-                    text=Messages.task_msg + Messages.status_head + sysINFO(),
+                MSG.status_msg = await MSG.status_msg.edit_caption(
+                    caption=Messages.task_msg + Messages.status_head + sysINFO(),
                     reply_markup=keyboard(),
                 )
             except Exception:
@@ -205,8 +205,8 @@ async def SubLeech(folder_path: str, remove: bool):
         # Step 2: Show extracting status
         Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n📁 File {idx}/{total_videos}\n\n<code>{file_name}</code>\n\n🔍 <i>Extracting subtitles...</i>\n"
         try:
-            MSG.status_msg = await MSG.status_msg.edit_text(
-                text=Messages.task_msg + Messages.status_head + sysINFO(),
+            MSG.status_msg = await MSG.status_msg.edit_caption(
+                caption=Messages.task_msg + Messages.status_head + sysINFO(),
                 reply_markup=keyboard(),
             )
         except Exception:
@@ -219,8 +219,8 @@ async def SubLeech(folder_path: str, remove: bool):
         if not remove and ospath.exists(extract_from_path):
             Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n📁 File {idx}/{total_videos}\n\n<code>{file_name}</code>\n\n🗑️ <i>Deleting local copy...</i>\n"
             try:
-                MSG.status_msg = await MSG.status_msg.edit_text(
-                    text=Messages.task_msg + Messages.status_head + sysINFO(),
+                MSG.status_msg = await MSG.status_msg.edit_caption(
+                    caption=Messages.task_msg + Messages.status_head + sysINFO(),
                     reply_markup=keyboard(),
                 )
             except Exception:
@@ -235,8 +235,8 @@ async def SubLeech(folder_path: str, remove: bool):
                 BotTimes.current_time = time()
                 Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n📁 File {idx}/{total_videos}\n\n<code>{file_name}</code>\n\n📤 <i>Uploading: {sub_name}</i>\n"
                 try:
-                    MSG.status_msg = await MSG.status_msg.edit_text(
-                        text=Messages.task_msg + Messages.status_head + sysINFO(),
+                    MSG.status_msg = await MSG.status_msg.edit_caption(
+                        caption=Messages.task_msg + Messages.status_head + sysINFO(),
                         reply_markup=keyboard(),
                     )
                 except Exception:
@@ -249,8 +249,8 @@ async def SubLeech(folder_path: str, remove: bool):
         else:
             Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n\n📁 File {idx}/{total_videos}\n\n<code>{file_name}</code>\n\n⚠️ <i>No subtitles found!</i>\n"
             try:
-                MSG.status_msg = await MSG.status_msg.edit_text(
-                    text=Messages.task_msg + Messages.status_head + sysINFO(),
+                MSG.status_msg = await MSG.status_msg.edit_caption(
+                    caption=Messages.task_msg + Messages.status_head + sysINFO(),
                     reply_markup=keyboard(),
                 )
             except Exception:
