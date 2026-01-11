@@ -25,6 +25,7 @@
 
 - Easy To Use With Bot Commands ( Update 🔥 )
 - Powerful Video Converter, Convert Videos to mp4 / mkv ( New 🔥)
+- **Subtitle Extractor - Extract internal subtitles from videos ( New 🔥)**
 - Get Restricted Content From Telegram ( Beta Stage )
 - Added Custom File Name Support 
 - Download Multiple Files or Folders from Multiple Links 
