@@ -35,6 +35,7 @@ class BOT:
         type = "normal"
         ytdl = False
         ytdl_hard = False
+        ytdl_hard_subs = True  # True = hardcode subs, False = no subs
 
     class State:
         started = False

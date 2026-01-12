@@ -176,6 +176,19 @@ async def handle_url(client, message):
             BOT.TASK = event_loop.create_task(taskScheduler())  # type: ignore
             await BOT.TASK
             BOT.State.task_going = False
+        # For ytdl_hard mode, show subtitle choice
+        elif BOT.Mode.ytdl_hard:
+            keyboard = InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("🔥 With Subtitles", callback_data="ytdl_hard_subs_yes")],
+                    [InlineKeyboardButton("📹 Without Subtitles", callback_data="ytdl_hard_subs_no")],
+                ]
+            )
+            await message.reply_text(
+                text="<b>🎬 Select Subtitle Option »</b>\n\n<b>With Subtitles:</b> <i>Hardcode English subs into video</i>\n<b>Without Subtitles:</b> <i>Download max quality video only</i>",
+                reply_markup=keyboard,
+                quote=True,
+            )
         else:
             keyboard = InlineKeyboardMarkup(
                 [
@@ -213,6 +226,33 @@ async def handle_options(client, callback_query):
         MSG.status_msg = await colab_bot.send_message(
             chat_id=OWNER,
             text="#STARTING_TASK\n\n**Starting your task in a few Seconds...🦐**",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("Cancel ❌", callback_data="cancel")],
+                ]
+            ),
+        )
+        BOT.State.task_going = True
+        BOT.State.started = False
+        BotTimes.start_time = datetime.now()
+        event_loop = get_event_loop()
+        BOT.TASK = event_loop.create_task(taskScheduler())  # type: ignore
+        await BOT.TASK
+        BOT.State.task_going = False
+
+    elif callback_query.data in ["ytdl_hard_subs_yes", "ytdl_hard_subs_no"]:
+        # Set subtitle choice
+        BOT.Mode.ytdl_hard_subs = (callback_query.data == "ytdl_hard_subs_yes")
+        BOT.Mode.type = "normal"
+        await callback_query.message.delete()
+        await colab_bot.delete_messages(
+            chat_id=callback_query.message.chat.id,
+            message_ids=callback_query.message.reply_to_message_id,
+        )
+        sub_status = "with hardcoded subtitles 🔥" if BOT.Mode.ytdl_hard_subs else "without subtitles 📹"
+        MSG.status_msg = await colab_bot.send_message(
+            chat_id=OWNER,
+            text=f"#STARTING_TASK\n\n**Starting YouTube download {sub_status}...**",
             reply_markup=InlineKeyboardMarkup(
                 [
                     [InlineKeyboardButton("Cancel ❌", callback_data="cancel")],

@@ -51,8 +51,8 @@ async def YTDL_Status(link, num):
 
         await sleep(2.5)
     
-    # Post-processing for hardcode mode
-    if BOT.Mode.ytdl_hard:
+    # Post-processing for hardcode mode (only if user chose "With Subtitles")
+    if BOT.Mode.ytdl_hard and BOT.Mode.ytdl_hard_subs:
         await hardcode_subtitles(Paths.down_path)
 
 
