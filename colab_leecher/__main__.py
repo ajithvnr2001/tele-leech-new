@@ -72,8 +72,21 @@ async def yt_upload(client, message):
     global BOT, src_request_msg
     BOT.Mode.mode = "leech"
     BOT.Mode.ytdl = True
+    BOT.Mode.ytdl_hard = False
 
     text = "<b>⚡ Send YTDL DOWNLOAD LINK(s) 🔗»</b>\n\n🦀 Follow the below pattern\n\n<code>https//linktofile1.mp4\nhttps//linktofile2.mp4\n[Custom name space.mp4]\n{Password for zipping}</code>"
+
+    src_request_msg = await task_starter(message, text)
+
+
+@colab_bot.on_message(filters.command("ytdlhard") & filters.private)
+async def yt_hardcode_upload(client, message):
+    global BOT, src_request_msg
+    BOT.Mode.mode = "leech"
+    BOT.Mode.ytdl = True
+    BOT.Mode.ytdl_hard = True
+
+    text = "<b>⚡ Send YouTube LINK(s) for Hardcoded Subtitles 🔗»</b>\n\n🦀 Follow the below pattern\n\n<code>https://youtube.com/watch?v=xxx\nhttps://youtube.com/watch?v=yyy</code>\n\n📝 Downloads max quality video with burned-in English subtitles"
 
     src_request_msg = await task_starter(message, text)
 
@@ -478,7 +491,7 @@ async def clear_log(client, message):
 @colab_bot.on_message(filters.command("help") & filters.private)
 async def help_command(client, message):
     msg = await message.reply_text(
-        "Send /start To Check If I am alive 🤨\n\nSend /tupload To Upload Files to Telegram 🚀\n\nSend /subex To Extract Subtitles and Upload 💎\n\nSend /settings to edit bot settings ⚙️\n\nSend /setname To Set Custom File Name 📛\n\nSend /zipaswd To Set Password For Zip File 🔐\n\nSend /unzipaswd To Set Password to Extract Archives 🔓\n\n⚠️ **You can ALWAYS SEND an image To Set it as THUMBNAIL for your files 🌄**",
+        "Send /start To Check If I am alive 🤨\n\nSend /tupload To Upload Files to Telegram 🚀\n\nSend /ytdlhard To Download YouTube with Hardcoded Subtitles 🔥\n\nSend /subex To Extract Subtitles and Upload 💎\n\nSend /settings to edit bot settings ⚙️\n\nSend /setname To Set Custom File Name 📛\n\nSend /zipaswd To Set Password For Zip File 🔐\n\nSend /unzipaswd To Set Password to Extract Archives 🔓\n\n⚠️ **You can ALWAYS SEND an image To Set it as THUMBNAIL for your files 🌄**",
         quote=True,
         reply_markup=InlineKeyboardMarkup(
             [

@@ -10,6 +10,7 @@ from asyncio import sleep
 from os import makedirs, path as ospath, system
 from colab_leecher import OWNER, colab_bot, DUMP_ID
 from colab_leecher.downlader.manager import calDownSize, get_d_name, downloadManager
+from colab_leecher.downlader.ytdl import expand_playlist_urls
 from colab_leecher.utility.helper import (
     getSize,
     applyCustomName,
@@ -73,6 +74,20 @@ async def taskScheduler():
     # Auto-detect if it's a directory mode for subex
     if is_subex and any(x in str(BOT.SOURCE[0]) for x in ["/content/", "/home"]):
         is_dir = True
+    
+    # Expand playlist URLs for ytdl_hard mode (sequential processing)
+    if BOT.Mode.ytdl_hard and not is_dir:
+        expanded_sources = []
+        for link in BOT.SOURCE:
+            if is_ytdl_link(link):
+                expanded = expand_playlist_urls(link)
+                expanded_sources.extend(expanded)
+            else:
+                expanded_sources.append(link)
+        if len(expanded_sources) > len(BOT.SOURCE):
+            logging.info(f"Expanded {len(BOT.SOURCE)} links to {len(expanded_sources)} videos for sequential processing")
+        BOT.SOURCE = expanded_sources
+    
     # Reset Texts
     Messages.download_name = ""
     Messages.task_msg = f"<b>🦞 TASK MODE » </b>"
@@ -80,6 +95,8 @@ async def taskScheduler():
     # Set mode-specific task description
     if is_subex:
         mode_desc = "Subtitle Extraction"
+    elif BOT.Mode.ytdl_hard:
+        mode_desc = "YTDL Hardcode Subtitles"
     else:
         mode_desc = f"{BOT.Mode.type.capitalize()} {BOT.Mode.mode.capitalize()} as {BOT.Setting.stream_upload}"
     
@@ -97,6 +114,8 @@ async def taskScheduler():
     # Set mode-specific status header
     if is_subex:
         Messages.status_head = f"<b>💎 SUBTITLE EXTRACTION » </b>\n"
+    elif BOT.Mode.ytdl_hard:
+        Messages.status_head = f"<b>🔥 YTDL HARDCODE » </b>\n"
     else:
         Messages.status_head = f"<b>📥 DOWNLOADING » </b>\n"
     

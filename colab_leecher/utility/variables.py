@@ -34,6 +34,7 @@ class BOT:
         mode = "leech"
         type = "normal"
         ytdl = False
+        ytdl_hard = False
 
     class State:
         started = False
