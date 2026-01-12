@@ -62,10 +62,30 @@ We performed a deep-dive into the `leech-log.txt` to solve user-reported failure
 
 ---
 
-## 📖 4. Documentation & Maintenance
-- **Wiki Management**: Updated `INSTRUCTIONS.md` and `Home.md` in the `new_wiki` folder to accurately describe the new prioritized downloader and sequential processing.
-- **GitHub Sync**: All changes have been committed and pushed to the `main` branch of `tele-leech-new`, ensuring users can simply `git pull` to receive updates.
+## 💎 5. Subtitle Extractor Feature (/subex)
+A new feature to extract internal subtitles from video files and upload them to Telegram.
+
+### **Key Features**
+- **FFmpeg Powered**: Uses `ffprobe` to detect subtitle tracks and `ffmpeg` to extract them
+- **Smart Naming**: `filename_sub_lang.srt` (single) or `filename_sub_lang-N.srt` (multiple tracks)
+- **Sequential Processing**:
+  - **Links**: Download -> Extract -> Upload -> Delete video -> Next link
+  - **Directories**: Copy one file at a time -> Extract -> Delete local copy -> Upload (source preserved)
+- **Async Cancel Support**: Cancel button works during file operations via `asyncio.to_thread()`
+
+### **Files Added/Modified**
+- `colab_leecher/utility/sub_extractor.py` (NEW) - FFmpeg extraction logic
+- `colab_leecher/__main__.py` - `/subex` command registration
+- `colab_leecher/utility/task_manager.py` - `subex` mode handling
+- `colab_leecher/utility/handler.py` - `SubLeech` function
 
 ---
-**Document Version**: 2.0 (Detailed)
-**Date**: 2026-01-11
+
+## 📖 6. Documentation & Maintenance
+- **Wiki Management**: Updated `INSTRUCTIONS.md` and `Home.md` in the `new_wiki` folder
+- **README.md**: Added `/subex` feature to features list
+- **GitHub Sync**: All changes committed and pushed to `main` branch
+
+---
+**Document Version**: 3.0 (Added /subex feature)
+**Date**: 2026-01-12
