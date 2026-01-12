@@ -10,7 +10,6 @@ from asyncio import sleep
 from os import makedirs, path as ospath, system
 from colab_leecher import OWNER, colab_bot, DUMP_ID
 from colab_leecher.downlader.manager import calDownSize, get_d_name, downloadManager
-from colab_leecher.downlader.ytdl import expand_playlist_urls
 from colab_leecher.utility.helper import (
     getSize,
     applyCustomName,
@@ -77,6 +76,8 @@ async def taskScheduler():
     
     # Expand playlist URLs for ytdl_hard mode (sequential processing)
     if BOT.Mode.ytdl_hard and not is_dir:
+        # Import here to avoid circular import
+        from colab_leecher.downlader.ytdl import expand_playlist_urls
         expanded_sources = []
         for link in BOT.SOURCE:
             if is_ytdl_link(link):
