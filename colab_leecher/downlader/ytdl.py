@@ -112,14 +112,14 @@ async def hardcode_subtitles(folder_path):
         logging.info(f"Hardcoding subtitles: {video_path} + {sub_path}")
         
         # FFmpeg command to burn subtitles
-        # Using subtitles filter for soft subs or hardcode
+        # CRF 18 = visually lossless quality, preset slow = best quality/size ratio
         cmd = [
             'ffmpeg', '-y',
             '-i', video_path,
             '-vf', f"subtitles='{sub_path}'",
             '-c:v', 'libx264',
-            '-crf', '23',
-            '-preset', 'fast',
+            '-crf', '18',
+            '-preset', 'slow',
             '-c:a', 'copy',
             output_path
         ]
