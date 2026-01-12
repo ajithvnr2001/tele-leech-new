@@ -93,7 +93,25 @@ async def hardcode_subtitles(folder_path):
                 break
         
         if not sub_path:
-            logging.warning(f"No subtitle found for: {video_name}")
+            logging.warning(f"No subtitle found for: {video_name}, saving video without hardcode")
+            # No subtitles found - just rename to MKV and continue
+            final_path = ospath.join(video_dir, f"{video_name}.mkv")
+            if not video_path.endswith('.mkv'):
+                # Convert to MKV without re-encoding (just remux)
+                temp_mkv = ospath.join(video_dir, f"{video_name}_temp.mkv")
+                cmd = ['ffmpeg', '-y', '-i', video_path, '-c', 'copy', temp_mkv]
+                try:
+                    subprocess.run(cmd, capture_output=True, timeout=600)
+                    if ospath.exists(temp_mkv) and ospath.getsize(temp_mkv) > 0:
+                        os.remove(video_path)
+                        os.rename(temp_mkv, final_path)
+                        logging.info(f"Saved without subs: {final_path}")
+                except Exception as e:
+                    logging.error(f"Remux error: {e}")
+            else:
+                # Already MKV, just ensure correct name
+                if video_path != final_path:
+                    os.rename(video_path, final_path)
             continue
         
         # Prepare output path (always MKV)
