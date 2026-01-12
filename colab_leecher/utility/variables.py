@@ -36,6 +36,8 @@ class BOT:
         ytdl = False
         ytdl_hard = False
         ytdl_hard_subs = True  # True = hardcode subs, False = no subs
+        ytdl_hard_choices = []  # Per-link choices: list of True/False for each link
+        ytdl_hard_choice_idx = 0  # Current index while collecting choices
 
     class State:
         started = False

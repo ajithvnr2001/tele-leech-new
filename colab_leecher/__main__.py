@@ -176,19 +176,42 @@ async def handle_url(client, message):
             BOT.TASK = event_loop.create_task(taskScheduler())  # type: ignore
             await BOT.TASK
             BOT.State.task_going = False
-        # For ytdl_hard mode, show subtitle choice
+        # For ytdl_hard mode, show per-link subtitle choice
         elif BOT.Mode.ytdl_hard:
-            keyboard = InlineKeyboardMarkup(
-                [
-                    [InlineKeyboardButton("🔥 With Subtitles", callback_data="ytdl_hard_subs_yes")],
-                    [InlineKeyboardButton("📹 Without Subtitles", callback_data="ytdl_hard_subs_no")],
-                ]
-            )
-            await message.reply_text(
-                text="<b>🎬 Select Subtitle Option »</b>\n\n<b>With Subtitles:</b> <i>Hardcode English subs into video</i>\n<b>Without Subtitles:</b> <i>Download max quality video only</i>",
-                reply_markup=keyboard,
-                quote=True,
-            )
+            # Initialize choices list and start from first link
+            BOT.Mode.ytdl_hard_choices = []
+            BOT.Mode.ytdl_hard_choice_idx = 0
+            num_links = len(BOT.SOURCE)
+            
+            if num_links == 1:
+                # Single link - show simple choice
+                keyboard = InlineKeyboardMarkup(
+                    [
+                        [InlineKeyboardButton("🔥 With Subtitles", callback_data="ytdl_hard_subs_yes")],
+                        [InlineKeyboardButton("📹 Without Subtitles", callback_data="ytdl_hard_subs_no")],
+                    ]
+                )
+                await message.reply_text(
+                    text="<b>🎬 Select Subtitle Option »</b>\n\n<b>With Subtitles:</b> <i>Hardcode English subs into video</i>\n<b>Without Subtitles:</b> <i>Download max quality video only</i>",
+                    reply_markup=keyboard,
+                    quote=True,
+                )
+            else:
+                # Multiple links - show choice for first link
+                link = BOT.SOURCE[0]
+                keyboard = InlineKeyboardMarkup(
+                    [
+                        [InlineKeyboardButton("🔥 With Subs", callback_data="ytdl_hard_link_yes")],
+                        [InlineKeyboardButton("📹 No Subs", callback_data="ytdl_hard_link_no")],
+                        [InlineKeyboardButton("✅ All With Subs", callback_data="ytdl_hard_all_yes")],
+                        [InlineKeyboardButton("❌ All Without Subs", callback_data="ytdl_hard_all_no")],
+                    ]
+                )
+                await message.reply_text(
+                    text=f"<b>🎬 Link 1/{num_links} »</b>\n\n<code>{link[:60]}{'...' if len(link) > 60 else ''}</code>\n\n<i>Choose subtitle option for this link:</i>",
+                    reply_markup=keyboard,
+                    quote=True,
+                )
         else:
             keyboard = InlineKeyboardMarkup(
                 [
@@ -264,6 +287,82 @@ async def handle_options(client, callback_query):
         BotTimes.start_time = datetime.now()
         event_loop = get_event_loop()
         BOT.TASK = event_loop.create_task(taskScheduler())  # type: ignore
+        await BOT.TASK
+        BOT.State.task_going = False
+
+    elif callback_query.data in ["ytdl_hard_link_yes", "ytdl_hard_link_no"]:
+        # Per-link choice - add to choices list
+        choice = (callback_query.data == "ytdl_hard_link_yes")
+        BOT.Mode.ytdl_hard_choices.append(choice)
+        BOT.Mode.ytdl_hard_choice_idx += 1
+        
+        num_links = len(BOT.SOURCE)
+        current_idx = BOT.Mode.ytdl_hard_choice_idx
+        
+        if current_idx < num_links:
+            # Show next link choice
+            link = BOT.SOURCE[current_idx]
+            keyboard = InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("🔥 With Subs", callback_data="ytdl_hard_link_yes")],
+                    [InlineKeyboardButton("📹 No Subs", callback_data="ytdl_hard_link_no")],
+                    [InlineKeyboardButton("✅ All Remaining With Subs", callback_data="ytdl_hard_all_yes")],
+                    [InlineKeyboardButton("❌ All Remaining No Subs", callback_data="ytdl_hard_all_no")],
+                ]
+            )
+            await callback_query.message.edit_text(
+                text=f"<b>🎬 Link {current_idx + 1}/{num_links} »</b>\n\n<code>{link[:60]}{'...' if len(link) > 60 else ''}</code>\n\n<i>Choose subtitle option for this link:</i>",
+                reply_markup=keyboard,
+            )
+        else:
+            # All choices made - start task
+            await callback_query.message.delete()
+            MSG.status_msg = await colab_bot.send_message(
+                chat_id=OWNER,
+                text=f"#STARTING_TASK\n\n**Starting YouTube download for {num_links} links...**",
+                reply_markup=InlineKeyboardMarkup(
+                    [
+                        [InlineKeyboardButton("Cancel ❌", callback_data="cancel")],
+                    ]
+                ),
+            )
+            BOT.Mode.type = "normal"
+            BOT.State.task_going = True
+            BOT.State.started = False
+            BotTimes.start_time = datetime.now()
+            event_loop = get_event_loop()
+            BOT.TASK = event_loop.create_task(taskScheduler())
+            await BOT.TASK
+            BOT.State.task_going = False
+
+    elif callback_query.data in ["ytdl_hard_all_yes", "ytdl_hard_all_no"]:
+        # Bulk choice - fill remaining with same choice
+        choice = (callback_query.data == "ytdl_hard_all_yes")
+        num_links = len(BOT.SOURCE)
+        current_idx = BOT.Mode.ytdl_hard_choice_idx
+        
+        # Fill remaining choices
+        remaining = num_links - current_idx
+        BOT.Mode.ytdl_hard_choices.extend([choice] * remaining)
+        
+        # Start task
+        await callback_query.message.delete()
+        sub_text = "with subtitles" if choice else "without subtitles"
+        MSG.status_msg = await colab_bot.send_message(
+            chat_id=OWNER,
+            text=f"#STARTING_TASK\n\n**Starting YouTube download for {num_links} links ({remaining} remaining {sub_text})...**",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("Cancel ❌", callback_data="cancel")],
+                ]
+            ),
+        )
+        BOT.Mode.type = "normal"
+        BOT.State.task_going = True
+        BOT.State.started = False
+        BotTimes.start_time = datetime.now()
+        event_loop = get_event_loop()
+        BOT.TASK = event_loop.create_task(taskScheduler())
         await BOT.TASK
         BOT.State.task_going = False
 

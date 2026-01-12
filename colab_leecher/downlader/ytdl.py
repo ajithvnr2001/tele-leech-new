@@ -18,9 +18,18 @@ async def YTDL_Status(link, num):
     global Messages, YTDL
     name = await get_YT_Name(link)
     
+    # Determine if this link should have subtitles hardcoded
+    # Check per-link choices first, then fall back to global setting
+    link_idx = num - 1  # num is 1-indexed
+    if BOT.Mode.ytdl_hard and len(BOT.Mode.ytdl_hard_choices) > link_idx:
+        should_hardcode = BOT.Mode.ytdl_hard_choices[link_idx]
+    else:
+        should_hardcode = BOT.Mode.ytdl_hard and BOT.Mode.ytdl_hard_subs
+    
     # Use different status header for hardcode mode
     if BOT.Mode.ytdl_hard:
-        Messages.status_head = f"<b>📥 HARDCODE DOWNLOAD » </b><i>🔗Link {str(num).zfill(2)}</i>\n\n<code>{name}</code>\n"
+        sub_info = "🔥" if should_hardcode else "📹"
+        Messages.status_head = f"<b>📥 YTDL DOWNLOAD {sub_info} » </b><i>🔗Link {str(num).zfill(2)}</i>\n\n<code>{name}</code>\n"
     else:
         Messages.status_head = f"<b>📥 DOWNLOADING FROM » </b><i>🔗Link {str(num).zfill(2)}</i>\n\n<code>{name}</code>\n"
 
@@ -51,8 +60,8 @@ async def YTDL_Status(link, num):
 
         await sleep(2.5)
     
-    # Post-processing for hardcode mode (only if user chose "With Subtitles")
-    if BOT.Mode.ytdl_hard and BOT.Mode.ytdl_hard_subs:
+    # Post-processing for hardcode mode (only if this link should have subs)
+    if BOT.Mode.ytdl_hard and should_hardcode:
         await hardcode_subtitles(Paths.down_path)
 
 
