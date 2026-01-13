@@ -258,6 +258,7 @@ def YouTubeDL(url, sub_mode=1):
     ydl_opts = {
         "outtmpl": ospath.join(Paths.down_path, "%(title)s.%(ext)s"),
         "quiet": True,
+        "ignoreerrors": True,  # Prevent crash if subtitles fail (e.g. 429 error)
         "--concurrent-fragments": 4 , # Set the maximum number of concurrent fragments
         "allow_playlist_files": True,
         "overwrites": True,
