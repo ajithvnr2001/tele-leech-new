@@ -662,7 +662,7 @@ async def clear_log(client, message):
 @colab_bot.on_message(filters.command("help") & filters.private)
 async def help_command(client, message):
     msg = await message.reply_text(
-        "Send /start To Check If I am alive 🤨\n\nSend /tupload To Upload Files to Telegram 🚀\n\nSend /ytdlhard To Download YouTube with Hardcoded Subtitles 🔥\n\nSend /subex To Extract Subtitles and Upload 💎\n\nSend /settings to edit bot settings ⚙️\n\nSend /setname To Set Custom File Name 📛\n\nSend /zipaswd To Set Password For Zip File 🔐\n\nSend /unzipaswd To Set Password to Extract Archives 🔓\n\n⚠️ **You can ALWAYS SEND an image To Set it as THUMBNAIL for your files 🌄**",
+        "Send /start To Check If I am alive 🤨\n\nSend /tupload To Upload Files to Telegram 🚀\n\nSend /drupload To Mirror from Direct Link 🔗\n\nSend /ytdlhard To Download YouTube with Subtitle Choices 🔥\n\nSend /subex To Extract Subtitles and Upload 💎\n\nSend /settings to edit bot settings ⚙️\n\nSend /setname To Set Custom File Name 📛\n\nSend /zipaswd To Set Password For Zip File 🔐\n\nSend /unzipaswd To Set Password to Extract Archives 🔓\n\n⚠️ **You can ALWAYS SEND an image To Set it as THUMBNAIL for your files 🌄**",
         quote=True,
         reply_markup=InlineKeyboardMarkup(
             [

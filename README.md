@@ -26,7 +26,8 @@
 - Easy To Use With Bot Commands ( Update 🔥 )
 - Powerful Video Converter, Convert Videos to mp4 / mkv ( New 🔥)
 - **Subtitle Extractor - Extract internal subtitles from videos ( New 🔥)**
-- **YouTube Hardcode Subtitles - Download YouTube videos with burned-in English subtitles ( New 🔥)**
+- **YouTube Multi-Mode Downloader - Burn-in subs, separate subs, or fast video-only ( New 🔥)**
+- Support for Direct link mirror/upload with `/drupload`
 - Get Restricted Content From Telegram ( Beta Stage )
 - Added Custom File Name Support 
 - Download Multiple Files or Folders from Multiple Links 
@@ -35,7 +36,7 @@
 - Auto Generate Thumbnail From Video Files 
 - Download Directly To Google Drive / Mirroring
 - Zip Folders/Files
-- Split support for all files > 2GB/4GB
+- Split support for all files > 2GB/4GB ( Including Videos )
 
 ## **🔗 Supported Links**
 
@@ -66,8 +67,7 @@
 
 ## **🚨 NOTE:**
 
-- Video Splitting is intentionally disabled to avoid video corruptions. Instead, they are zipped if they exceed MAX_UPLOAD_SIZE
-<!-- - Magnet or Torrent Links are supported, But avoid using, because `Google Colab Strictly Prohibits Torrents` -->
+- Video Splitting is enabled by default. Files > 2GB (4GB for Premium) will be split into parts to ensure successful Telegram upload.
 - Downloading `YouTube Video without permission of the owner` can lead to copyright issues. Use with Caution
 
 ## **🤙🏼 Connect With Us**
