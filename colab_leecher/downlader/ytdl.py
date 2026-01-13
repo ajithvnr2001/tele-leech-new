@@ -33,7 +33,7 @@ async def YTDL_Status(link, num):
     else:
         Messages.status_head = f"<b>📥 DOWNLOADING FROM » </b><i>🔗Link {str(num).zfill(2)}</i>\n\n<code>{name}</code>\n"
 
-    YTDL_Thread = Thread(target=YouTubeDL, name="YouTubeDL", args=(link,))
+    YTDL_Thread = Thread(target=YouTubeDL, name="YouTubeDL", args=(link, should_hardcode))
     YTDL_Thread.start()
 
     while YTDL_Thread.is_alive():  # Until ytdl is downloading
@@ -202,7 +202,7 @@ class MyLogger:
         pass
 
 
-def YouTubeDL(url):
+def YouTubeDL(url, should_hardcode=True):
     global YTDL
 
     def my_hook(d):
@@ -229,14 +229,26 @@ def YouTubeDL(url):
             # log_str = d["message"]
             # print(log_str, end="")
             pass
-        else:
+        elif d["status"] == "finished":
             logging.info(d)
+
+    class MyLogger:
+        def debug(self, msg):
+            pass
+
+        def warning(self, msg):
+            pass
+
+        def error(self, msg):
+            # if msg != "ERROR: Cancelling...":
+            # print(msg)
+            pass
+
 
     # Base options
     ydl_opts = {
-        "allow_multiple_video_streams": True,
-        "allow_multiple_audio_streams": True,
-        "writethumbnail": True,
+        "outtmpl": ospath.join(Paths.down_path, "%(title)s.%(ext)s"),
+        "quiet": True,
         "--concurrent-fragments": 4 , # Set the maximum number of concurrent fragments
         "allow_playlist_files": True,
         "overwrites": True,
@@ -246,23 +258,26 @@ def YouTubeDL(url):
     
     # Configure based on mode
     if BOT.Mode.ytdl_hard:
-        # Hardcode mode: best quality, download subtitles, no conversion (we'll do mkv later)
+        # Hardcode mode: best quality
         ydl_opts.update({
             "format": "bestvideo+bestaudio/best",
-            "writesubtitles": True,
-            "writeautomaticsub": True,
-            "subtitleslangs": ["en", "en-US", "en-GB", "en.*"],
-            "subtitlesformat": "srt/vtt/best",
-            "postprocessors": [
-                {"key": "FFmpegSubtitlesConvertor", "format": "srt"},
-            ],
         })
+        # Only download subtitles if user chose "With Subs" for this link
+        if should_hardcode:
+            ydl_opts.update({
+                "writesubtitles": True,
+                "writeautomaticsub": True,
+                "subtitleslangs": ["en", "en-US", "en-GB", "en.*"],
+                "subtitlesformat": "srt/vtt/best",
+                "postprocessors": [
+                    {"key": "FFmpegSubtitlesConvertor", "format": "srt"},
+                ],
+            })
     else:
         # Normal mode
         ydl_opts.update({
             "format": "best",
             "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}],
-            "writesubtitles": "srt",
             "extractor_args": {"subtitlesformat": "srt"},
         })
 
