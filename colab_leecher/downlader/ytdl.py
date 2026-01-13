@@ -258,10 +258,16 @@ def YouTubeDL(url, should_hardcode=True):
     
     # Configure based on mode
     if BOT.Mode.ytdl_hard:
-        # Hardcode mode: best quality
-        ydl_opts.update({
-            "format": "bestvideo+bestaudio/best",
-        })
+        if should_hardcode:
+            # With Subs: best separate streams (for hardcoding)
+            ydl_opts.update({
+                "format": "bestvideo+bestaudio/best",
+            })
+        else:
+            # Without Subs: best pre-muxed format (no FFmpeg merge needed, faster)
+            ydl_opts.update({
+                "format": "best",
+            })
         # Only download subtitles if user chose "With Subs" for this link
         if should_hardcode:
             ydl_opts.update({
