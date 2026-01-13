@@ -187,12 +187,13 @@ async def handle_url(client, message):
                 # Single link - show simple choice
                 keyboard = InlineKeyboardMarkup(
                     [
-                        [InlineKeyboardButton("🔥 With Subtitles", callback_data="ytdl_hard_subs_yes")],
-                        [InlineKeyboardButton("📹 Without Subtitles", callback_data="ytdl_hard_subs_no")],
+                        [InlineKeyboardButton("🔥 Hardcode Subtitles", callback_data="ytdl_hard_subs_burn")],
+                        [InlineKeyboardButton("🎥 Video + Separate Subs", callback_data="ytdl_hard_subs_sep")],
+                        [InlineKeyboardButton("📹 No Subtitles", callback_data="ytdl_hard_subs_none")],
                     ]
                 )
                 await message.reply_text(
-                    text="<b>🎬 Select Subtitle Option »</b>\n\n<b>With Subtitles:</b> <i>Hardcode English subs into video</i>\n<b>Without Subtitles:</b> <i>Download max quality video only</i>",
+                    text="<b>🎬 Select Subtitle Option »</b>\n\n<b>🔥 Hardcode:</b> <i>Burn English subs into video</i>\n<b>🎥 Separate:</b> <i>Max quality video + SRT files uploaded</i>\n<b>📹 None:</b> <i>Max quality video only</i>",
                     reply_markup=keyboard,
                     quote=True,
                 )
@@ -201,14 +202,20 @@ async def handle_url(client, message):
                 link = BOT.SOURCE[0]
                 keyboard = InlineKeyboardMarkup(
                     [
-                        [InlineKeyboardButton("🔥 With Subs", callback_data="ytdl_hard_link_yes")],
-                        [InlineKeyboardButton("📹 No Subs", callback_data="ytdl_hard_link_no")],
-                        [InlineKeyboardButton("✅ All With Subs", callback_data="ytdl_hard_all_yes")],
-                        [InlineKeyboardButton("❌ All Without Subs", callback_data="ytdl_hard_all_no")],
+                        [
+                            InlineKeyboardButton("🔥 Burn", callback_data="ytdl_hard_link_burn"),
+                            InlineKeyboardButton("🎥 Sep", callback_data="ytdl_hard_link_sep"),
+                            InlineKeyboardButton("📹 None", callback_data="ytdl_hard_link_none"),
+                        ],
+                        [
+                            InlineKeyboardButton("✅ All Burn", callback_data="ytdl_hard_all_burn"),
+                            InlineKeyboardButton("🎥 All Sep", callback_data="ytdl_hard_all_sep"),
+                            InlineKeyboardButton("❌ All None", callback_data="ytdl_hard_all_none"),
+                        ],
                     ]
                 )
                 await message.reply_text(
-                    text=f"<b>🎬 Link 1/{num_links} »</b>\n\n<code>{link[:60]}{'...' if len(link) > 60 else ''}</code>\n\n<i>Choose subtitle option for this link:</i>",
+                    text=f"<b>🎬 Link 1/{num_links} »</b>\n\n<code>{link[:60]}{'...' if len(link) > 60 else ''}</code>\n\n<i>🔥Burn | 🎥Separate | 📹None</i>",
                     reply_markup=keyboard,
                     quote=True,
                 )
@@ -263,16 +270,23 @@ async def handle_options(client, callback_query):
         await BOT.TASK
         BOT.State.task_going = False
 
-    elif callback_query.data in ["ytdl_hard_subs_yes", "ytdl_hard_subs_no"]:
-        # Set subtitle choice
-        BOT.Mode.ytdl_hard_subs = (callback_query.data == "ytdl_hard_subs_yes")
+    elif callback_query.data in ["ytdl_hard_subs_burn", "ytdl_hard_subs_sep", "ytdl_hard_subs_none"]:
+        # Set subtitle choice: 0=none, 1=burn, 2=separate
+        if callback_query.data == "ytdl_hard_subs_burn":
+            BOT.Mode.ytdl_hard_subs = 1
+            sub_status = "with hardcoded subtitles 🔥"
+        elif callback_query.data == "ytdl_hard_subs_sep":
+            BOT.Mode.ytdl_hard_subs = 2
+            sub_status = "with separate subtitles 🎥"
+        else:
+            BOT.Mode.ytdl_hard_subs = 0
+            sub_status = "without subtitles 📹"
         BOT.Mode.type = "normal"
         await callback_query.message.delete()
         await colab_bot.delete_messages(
             chat_id=callback_query.message.chat.id,
             message_ids=callback_query.message.reply_to_message_id,
         )
-        sub_status = "with hardcoded subtitles 🔥" if BOT.Mode.ytdl_hard_subs else "without subtitles 📹"
         MSG.status_msg = await colab_bot.send_message(
             chat_id=OWNER,
             text=f"#STARTING_TASK\n\n**Starting YouTube download {sub_status}...**",
@@ -290,9 +304,14 @@ async def handle_options(client, callback_query):
         await BOT.TASK
         BOT.State.task_going = False
 
-    elif callback_query.data in ["ytdl_hard_link_yes", "ytdl_hard_link_no"]:
-        # Per-link choice - add to choices list
-        choice = (callback_query.data == "ytdl_hard_link_yes")
+    elif callback_query.data in ["ytdl_hard_link_burn", "ytdl_hard_link_sep", "ytdl_hard_link_none"]:
+        # Per-link choice - add to choices list (0=none, 1=burn, 2=separate)
+        if callback_query.data == "ytdl_hard_link_burn":
+            choice = 1
+        elif callback_query.data == "ytdl_hard_link_sep":
+            choice = 2
+        else:
+            choice = 0
         BOT.Mode.ytdl_hard_choices.append(choice)
         BOT.Mode.ytdl_hard_choice_idx += 1
         
@@ -304,14 +323,20 @@ async def handle_options(client, callback_query):
             link = BOT.SOURCE[current_idx]
             keyboard = InlineKeyboardMarkup(
                 [
-                    [InlineKeyboardButton("🔥 With Subs", callback_data="ytdl_hard_link_yes")],
-                    [InlineKeyboardButton("📹 No Subs", callback_data="ytdl_hard_link_no")],
-                    [InlineKeyboardButton("✅ All Remaining With Subs", callback_data="ytdl_hard_all_yes")],
-                    [InlineKeyboardButton("❌ All Remaining No Subs", callback_data="ytdl_hard_all_no")],
+                    [
+                        InlineKeyboardButton("🔥 Burn", callback_data="ytdl_hard_link_burn"),
+                        InlineKeyboardButton("🎥 Sep", callback_data="ytdl_hard_link_sep"),
+                        InlineKeyboardButton("📹 None", callback_data="ytdl_hard_link_none"),
+                    ],
+                    [
+                        InlineKeyboardButton("✅ All Burn", callback_data="ytdl_hard_all_burn"),
+                        InlineKeyboardButton("🎥 All Sep", callback_data="ytdl_hard_all_sep"),
+                        InlineKeyboardButton("❌ All None", callback_data="ytdl_hard_all_none"),
+                    ],
                 ]
             )
             await callback_query.message.edit_text(
-                text=f"<b>🎬 Link {current_idx + 1}/{num_links} »</b>\n\n<code>{link[:60]}{'...' if len(link) > 60 else ''}</code>\n\n<i>Choose subtitle option for this link:</i>",
+                text=f"<b>🎬 Link {current_idx + 1}/{num_links} »</b>\n\n<code>{link[:60]}{'...' if len(link) > 60 else ''}</code>\n\n<i>🔥Burn | 🎥Separate | 📹None</i>",
                 reply_markup=keyboard,
             )
         else:
@@ -335,9 +360,17 @@ async def handle_options(client, callback_query):
             await BOT.TASK
             BOT.State.task_going = False
 
-    elif callback_query.data in ["ytdl_hard_all_yes", "ytdl_hard_all_no"]:
-        # Bulk choice - fill remaining with same choice
-        choice = (callback_query.data == "ytdl_hard_all_yes")
+    elif callback_query.data in ["ytdl_hard_all_burn", "ytdl_hard_all_sep", "ytdl_hard_all_none"]:
+        # Bulk choice - fill remaining with same choice (0=none, 1=burn, 2=separate)
+        if callback_query.data == "ytdl_hard_all_burn":
+            choice = 1
+            sub_text = "🔥 hardcode"
+        elif callback_query.data == "ytdl_hard_all_sep":
+            choice = 2
+            sub_text = "🎥 separate"
+        else:
+            choice = 0
+            sub_text = "📹 no subs"
         num_links = len(BOT.SOURCE)
         current_idx = BOT.Mode.ytdl_hard_choice_idx
         
@@ -347,7 +380,6 @@ async def handle_options(client, callback_query):
         
         # Start task
         await callback_query.message.delete()
-        sub_text = "with subtitles" if choice else "without subtitles"
         MSG.status_msg = await colab_bot.send_message(
             chat_id=OWNER,
             text=f"#STARTING_TASK\n\n**Starting YouTube download for {num_links} links ({remaining} remaining {sub_text})...**",

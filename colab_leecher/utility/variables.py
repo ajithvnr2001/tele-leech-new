@@ -35,8 +35,8 @@ class BOT:
         type = "normal"
         ytdl = False
         ytdl_hard = False
-        ytdl_hard_subs = True  # True = hardcode subs, False = no subs
-        ytdl_hard_choices = []  # Per-link choices: list of True/False for each link
+        ytdl_hard_subs = 1  # 0=no subs, 1=burn subs, 2=separate subs
+        ytdl_hard_choices = []  # Per-link choices: list of 0/1/2 for each link
         ytdl_hard_choice_idx = 0  # Current index while collecting choices
 
     class State:

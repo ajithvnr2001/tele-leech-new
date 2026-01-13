@@ -18,22 +18,27 @@ async def YTDL_Status(link, num):
     global Messages, YTDL
     name = await get_YT_Name(link)
     
-    # Determine if this link should have subtitles hardcoded
+    # Determine subtitle mode for this link (0=none, 1=burn, 2=separate)
     # Check per-link choices first, then fall back to global setting
     link_idx = num - 1  # num is 1-indexed
     if BOT.Mode.ytdl_hard and len(BOT.Mode.ytdl_hard_choices) > link_idx:
-        should_hardcode = BOT.Mode.ytdl_hard_choices[link_idx]
+        sub_mode = BOT.Mode.ytdl_hard_choices[link_idx]
     else:
-        should_hardcode = BOT.Mode.ytdl_hard and BOT.Mode.ytdl_hard_subs
+        sub_mode = BOT.Mode.ytdl_hard_subs if BOT.Mode.ytdl_hard else 0
     
     # Use different status header for hardcode mode
     if BOT.Mode.ytdl_hard:
-        sub_info = "🔥" if should_hardcode else "📹"
+        if sub_mode == 1:
+            sub_info = "🔥"  # Burn
+        elif sub_mode == 2:
+            sub_info = "🎥"  # Separate
+        else:
+            sub_info = "📹"  # None
         Messages.status_head = f"<b>📥 YTDL DOWNLOAD {sub_info} » </b><i>🔗Link {str(num).zfill(2)}</i>\n\n<code>{name}</code>\n"
     else:
         Messages.status_head = f"<b>📥 DOWNLOADING FROM » </b><i>🔗Link {str(num).zfill(2)}</i>\n\n<code>{name}</code>\n"
 
-    YTDL_Thread = Thread(target=YouTubeDL, name="YouTubeDL", args=(link, should_hardcode))
+    YTDL_Thread = Thread(target=YouTubeDL, name="YouTubeDL", args=(link, sub_mode))
     YTDL_Thread.start()
 
     while YTDL_Thread.is_alive():  # Until ytdl is downloading
@@ -60,8 +65,8 @@ async def YTDL_Status(link, num):
 
         await sleep(2.5)
     
-    # Post-processing for hardcode mode (only if this link should have subs)
-    if BOT.Mode.ytdl_hard and should_hardcode:
+    # Post-processing for hardcode mode (only if burn mode selected)
+    if BOT.Mode.ytdl_hard and sub_mode == 1:
         await hardcode_subtitles(Paths.down_path)
 
 
@@ -202,7 +207,11 @@ class MyLogger:
         pass
 
 
-def YouTubeDL(url, should_hardcode=True):
+def YouTubeDL(url, sub_mode=1):
+    """
+    Download YouTube video with specified subtitle mode.
+    sub_mode: 0=no subs, 1=burn subs, 2=separate subs
+    """
     global YTDL
 
     def my_hook(d):
@@ -258,20 +267,10 @@ def YouTubeDL(url, should_hardcode=True):
     
     # Configure based on mode
     if BOT.Mode.ytdl_hard:
-        if should_hardcode:
-            # With Subs: best separate streams (for hardcoding)
+        if sub_mode == 1:
+            # Burn Subs: best separate streams (for hardcoding with FFmpeg)
             ydl_opts.update({
                 "format": "bestvideo+bestaudio/best",
-            })
-        else:
-            # Without Subs: max quality with fast MKV remux (no re-encoding)
-            ydl_opts.update({
-                "format": "bestvideo+bestaudio/best",
-                "merge_output_format": "mkv",  # Fast remux, no re-encoding
-            })
-        # Only download subtitles if user chose "With Subs" for this link
-        if should_hardcode:
-            ydl_opts.update({
                 "writesubtitles": True,
                 "writeautomaticsub": True,
                 "subtitleslangs": ["en", "en-US", "en-GB", "en.*"],
@@ -279,6 +278,25 @@ def YouTubeDL(url, should_hardcode=True):
                 "postprocessors": [
                     {"key": "FFmpegSubtitlesConvertor", "format": "srt"},
                 ],
+            })
+        elif sub_mode == 2:
+            # Separate Subs: max quality + download subs, fast MKV remux
+            ydl_opts.update({
+                "format": "bestvideo+bestaudio/best",
+                "merge_output_format": "mkv",  # Fast remux, no re-encoding
+                "writesubtitles": True,
+                "writeautomaticsub": True,
+                "subtitleslangs": ["en", "en-US", "en-GB", "en.*"],
+                "subtitlesformat": "srt/vtt/best",
+                "postprocessors": [
+                    {"key": "FFmpegSubtitlesConvertor", "format": "srt"},
+                ],
+            })
+        else:
+            # No Subs: max quality with fast MKV remux (no re-encoding)
+            ydl_opts.update({
+                "format": "bestvideo+bestaudio/best",
+                "merge_output_format": "mkv",  # Fast remux, no re-encoding
             })
     else:
         # Normal mode
