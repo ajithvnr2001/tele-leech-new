@@ -264,9 +264,10 @@ def YouTubeDL(url, should_hardcode=True):
                 "format": "bestvideo+bestaudio/best",
             })
         else:
-            # Without Subs: best pre-muxed format (no FFmpeg merge needed, faster)
+            # Without Subs: max quality with fast MKV remux (no re-encoding)
             ydl_opts.update({
-                "format": "best",
+                "format": "bestvideo+bestaudio/best",
+                "merge_output_format": "mkv",  # Fast remux, no re-encoding
             })
         # Only download subtitles if user chose "With Subs" for this link
         if should_hardcode:
